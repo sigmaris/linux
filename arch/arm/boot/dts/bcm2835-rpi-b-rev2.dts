@@ -94,3 +94,8 @@
 &hdmi {
 	hpd-gpios = <&gpio 46 GPIO_ACTIVE_LOW>;
 };
+
+&i2c_dsi {
+	gpios = <&gpio 2 0
+		 &gpio 3 0>;
+};
