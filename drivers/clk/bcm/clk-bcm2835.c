@@ -1246,6 +1246,7 @@ static struct clk *bcm2835_register_clock(struct bcm2835_cprman *cprman,
 
 	if (data->is_vpu_clock) {
 		init.ops = &bcm2835_vpu_clock_clk_ops;
+		init.flags |= CLK_IS_CRITICAL;
 	} else {
 		init.ops = &bcm2835_clock_clk_ops;
 		init.flags |= CLK_SET_RATE_GATE | CLK_SET_PARENT_GATE;
