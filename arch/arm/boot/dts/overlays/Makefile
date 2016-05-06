@@ -83,6 +83,7 @@ dtbo-$(RPI_DT_OVERLAYS) += spi-gpio35-39.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += tinylcd35.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += uart1.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += vc4-kms-v3d.dtbo
+dtbo-$(RPI_DT_OVERLAYS) += vc4-dpi-adafruit-7inch.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += vga666.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += w1-gpio.dtbo
 dtbo-$(RPI_DT_OVERLAYS) += w1-gpio-pullup.dtbo

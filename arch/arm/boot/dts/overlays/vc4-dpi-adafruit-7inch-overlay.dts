@@ -1,0 +1,50 @@
+/*
+ * Enables the Adafruit 7" 40-pin TFT display:
+ *     https://www.adafruit.com/products/2354
+ * with the Adafruit DPI kippah:
+ *     https://learn.adafruit.com/adafruit-dpi-display-kippah-ttl-tft/
+ */
+#include <dt-bindings/pinctrl/bcm2835.h>
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835", "brcm,bcm2708", "brcm,bcm2709";
+
+	fragment@0 {
+		target = <&dpi>;
+		__overlay__  {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&dpi_pins>;
+
+			dpi_pins: dpi_pins {
+				brcm,pins = <0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23>;
+				brcm,function = <BCM2835_FSEL_ALT2>;
+			};
+
+			port {
+				dpi_out: endpoint@0 {
+					remote-endpoint = <&panel_in>;
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&soc>;
+
+		__overlay__  {
+			panel {
+				compatible = "ontat,yx700wv03", "simple-panel";
+
+				port {
+					panel_in: endpoint {
+						remote-endpoint = <&dpi_out>;
+					};
+				};
+			};
+		};
+	};
+};
