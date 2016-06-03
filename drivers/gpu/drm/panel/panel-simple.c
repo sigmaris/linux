@@ -1130,6 +1130,101 @@ static const struct panel_desc shelly_sca07010_bfn_lnn = {
 	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
 };
 
+/*
+ * 15kHz arcade monitor attached to VGA666 adaptor on DPI
+ */
+static const struct drm_display_mode vga666_arcade_modes[4] = {
+	{
+		/* 320x224p */
+		.clock = 6300,
+		.hdisplay = 320,
+		.hsync_start = 335,
+		.hsync_end = 365,
+		.htotal = 399,
+		.vdisplay = 224,
+		.vsync_start = 233,
+		.vsync_end = 236,
+		.vtotal = 263,
+		.vrefresh = 60,
+		.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
+	},
+	{
+		/* 320x240p */
+		.clock = 6400,
+		.hdisplay = 320,
+		.hsync_start = 336,
+		.hsync_end = 366,
+		.htotal = 400,
+		.vdisplay = 240,
+		.vsync_start = 242,
+		.vsync_end = 245,
+		.vtotal = 267,
+		.vrefresh = 60,
+		.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
+	},
+	{
+		/* 512x448i */
+		.clock = 10080,
+		.hdisplay = 512,
+		.hsync_start = 535,
+		.hsync_end = 583,
+		.htotal = 640,
+		.vdisplay = 448,
+		.vsync_start = 470,
+		.vsync_end = 476,
+		.vtotal = 525,
+		.vrefresh = 60,
+		.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_INTERLACE,
+	},
+	{
+		/* 512x480i */
+		.clock = 10240,
+		.hdisplay = 512,
+		.hsync_start = 535,
+		.hsync_end = 583,
+		.htotal = 640,
+		.vdisplay = 480,
+		.vsync_start = 482,
+		.vsync_end = 488,
+		.vtotal = 533,
+		.vrefresh = 60,
+		.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_INTERLACE,
+	},
+};
+
+static const struct panel_desc vga666_arcade = {
+	.modes = vga666_arcade_modes,
+	.num_modes = 4,
+	.bpc = 6,
+	.size = {
+		.width = 574,
+		.height = 462,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
+};
+
+static const struct panel_desc vga668_arcade = {
+	.modes = vga666_arcade_modes,
+	.num_modes = 4,
+	.bpc = 8,
+	.size = {
+		.width = 574,
+		.height = 462,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
+};
+
+static const struct panel_desc vga888_arcade = {
+	.modes = vga666_arcade_modes,
+	.num_modes = 4,
+	.bpc = 8,
+	.size = {
+		.width = 574,
+		.height = 462,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
+};
+
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "ampire,am800480r3tmqwa1h",
@@ -1227,6 +1322,15 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "shelly,sca07010-bfn-lnn",
 		.data = &shelly_sca07010_bfn_lnn,
+	}, {
+		.compatible = "custom,vga666-arcade",
+		.data = &vga666_arcade,
+	}, {
+		.compatible = "custom,vga668-arcade",
+		.data = &vga668_arcade,
+	}, {
+		.compatible = "custom,vga888-arcade",
+		.data = &vga888_arcade,
 	}, {
 		/* sentinel */
 	}
