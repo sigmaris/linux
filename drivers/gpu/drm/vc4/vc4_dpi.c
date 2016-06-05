@@ -254,8 +254,8 @@ static struct drm_connector *vc4_dpi_connector_init(struct drm_device *dev,
 	drm_connector_helper_add(connector, &vc4_dpi_connector_helper_funcs);
 
 	connector->polled = 0;
-	connector->interlace_allowed = 0;
-	connector->doublescan_allowed = 0;
+	connector->interlace_allowed = 1;
+	connector->doublescan_allowed = 1;
 
 	drm_mode_connector_attach_encoder(connector, dpi->encoder);
 
