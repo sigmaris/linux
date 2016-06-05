@@ -450,6 +450,8 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 		DRM_ERROR("Failed to turn on core clock: %d\n", ret);
 
 	dpi->panel = vc4_dpi_get_panel(dev);
+	if (!dpi->panel)
+		return -EPROBE_DEFER;
 
 	drm_encoder_init(drm, dpi->encoder, &vc4_dpi_encoder_funcs,
 			 DRM_MODE_ENCODER_DPI);
