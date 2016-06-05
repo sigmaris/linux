@@ -27,4 +27,31 @@
 			};
 		};
 	};
+
+	fragment@2 {
+		target = <&dpi>;
+		__overlay__ {
+			status = "okay";
+			port {
+				dpi_out: endpoint@0 {
+					remote-endpoint = <&panel_in>;
+				};
+			};
+		};
+	};
+
+	fragment@3 {
+		target-path = "/";
+		__overlay__ {
+			panel: panel {
+				compatible = "custom,vga666-arcade", "simple-panel";
+
+				port {
+					panel_in: endpoint {
+						remote-endpoint = <&dpi_out>;
+					};
+				};
+			};
+		};
+	};
 };
