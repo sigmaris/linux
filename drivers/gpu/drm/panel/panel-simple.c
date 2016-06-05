@@ -1203,28 +1203,6 @@ static const struct panel_desc vga666_arcade = {
 	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
 };
 
-static const struct panel_desc vga668_arcade = {
-	.modes = vga666_arcade_modes,
-	.num_modes = 4,
-	.bpc = 8,
-	.size = {
-		.width = 574,
-		.height = 462,
-	},
-	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
-};
-
-static const struct panel_desc vga888_arcade = {
-	.modes = vga666_arcade_modes,
-	.num_modes = 4,
-	.bpc = 8,
-	.size = {
-		.width = 574,
-		.height = 462,
-	},
-	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
-};
-
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "ampire,am800480r3tmqwa1h",
@@ -1325,12 +1303,6 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "custom,vga666-arcade",
 		.data = &vga666_arcade,
-	}, {
-		.compatible = "custom,vga668-arcade",
-		.data = &vga668_arcade,
-	}, {
-		.compatible = "custom,vga888-arcade",
-		.data = &vga888_arcade,
 	}, {
 		/* sentinel */
 	}
