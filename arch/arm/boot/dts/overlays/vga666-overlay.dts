@@ -44,7 +44,7 @@
 		target-path = "/";
 		__overlay__ {
 			panel: panel {
-				compatible = "custom,vga666-arcade", "simple-panel";
+				compatible = "fenlogic,vga666", "simple-panel";
 
 				port {
 					panel_in: endpoint {
