@@ -1,0 +1,45 @@
+This binding covers the official 7" (800x480) Raspberry Pi touchscreen
+panel.
+
+This DSI panel contains:
+
+- TC358762 DSI->DPI bridge
+- Atmel microcontroller on I2C for power sequencing the DSI bridge and
+  controlling backlight
+- Touchscreen controller on I2C for touch input
+
+and the binding currently covers the DSI display parts but not its
+touch input.
+
+Required properties:
+- compatible:	Must be "raspberrypi,touchscreen"
+- raspberrypi,touchscreen-bridge:
+		Handle to the I2C device for Atmel microcontroller
+
+Example:
+
+dsi1: dsi@7e700000 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	<...>
+
+	pitouchscreen: panel@0 {
+		compatible = "raspberrypi,touchscreen";
+		reg = <0>;
+
+		raspberrypi,touchscreen-bridge = <&pitouchscreen_bridge>;
+	};
+};
+
+i2c_dsi: i2c {
+	compatible = "i2c-gpio";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	gpios = <&gpio 28 0
+		 &gpio 29 0>;
+
+	pitouchscreen_bridge: bridge@45 {
+		compatible = "raspberrypi,touchscreen-bridge-i2c";
+		reg = <0x45>;
+	};
+};
