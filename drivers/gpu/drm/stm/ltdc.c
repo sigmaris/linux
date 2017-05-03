@@ -269,11 +269,6 @@ static inline struct ltdc_device *encoder_to_ltdc(struct drm_encoder *enc)
 	return (struct ltdc_device *)enc->dev->dev_private;
 }
 
-static inline struct ltdc_device *connector_to_ltdc(struct drm_connector *con)
-{
-	return (struct ltdc_device *)con->dev->dev_private;
-}
-
 static inline enum ltdc_pix_fmt to_ltdc_pixelformat(u32 drm_fmt)
 {
 	enum ltdc_pix_fmt pf;
@@ -815,22 +810,12 @@ cleanup:
 
 static void ltdc_rgb_encoder_enable(struct drm_encoder *encoder)
 {
-	struct ltdc_device *ldev = encoder_to_ltdc(encoder);
-
 	DRM_DEBUG_DRIVER("\n");
-
-	drm_panel_prepare(ldev->panel);
-	drm_panel_enable(ldev->panel);
 }
 
 static void ltdc_rgb_encoder_disable(struct drm_encoder *encoder)
 {
-	struct ltdc_device *ldev = encoder_to_ltdc(encoder);
-
 	DRM_DEBUG_DRIVER("\n");
-
-	drm_panel_disable(ldev->panel);
-	drm_panel_unprepare(ldev->panel);
 }
 
 static const struct drm_encoder_helper_funcs ltdc_rgb_encoder_helper_funcs = {
@@ -861,82 +846,6 @@ static struct drm_encoder *ltdc_rgb_encoder_create(struct drm_device *ddev)
 	DRM_DEBUG_DRIVER("RGB encoder:%d created\n", encoder->base.id);
 
 	return encoder;
-}
-
-/*
- * DRM_CONNECTOR
- */
-
-static int ltdc_rgb_connector_get_modes(struct drm_connector *connector)
-{
-	struct drm_device *ddev = connector->dev;
-	struct ltdc_device *ldev = ddev->dev_private;
-	int ret = 0;
-
-	DRM_DEBUG_DRIVER("\n");
-
-	if (ldev->panel)
-		ret = drm_panel_get_modes(ldev->panel);
-
-	return ret < 0 ? 0 : ret;
-}
-
-static struct drm_connector_helper_funcs ltdc_rgb_connector_helper_funcs = {
-	.get_modes = ltdc_rgb_connector_get_modes,
-};
-
-static enum drm_connector_status
-ltdc_rgb_connector_detect(struct drm_connector *connector, bool force)
-{
-	struct ltdc_device *ldev = connector_to_ltdc(connector);
-
-	return ldev->panel ? connector_status_connected :
-	       connector_status_disconnected;
-}
-
-static void ltdc_rgb_connector_destroy(struct drm_connector *connector)
-{
-	DRM_DEBUG_DRIVER("\n");
-
-	drm_connector_unregister(connector);
-	drm_connector_cleanup(connector);
-}
-
-static const struct drm_connector_funcs ltdc_rgb_connector_funcs = {
-	.dpms = drm_atomic_helper_connector_dpms,
-	.fill_modes = drm_helper_probe_single_connector_modes,
-	.detect = ltdc_rgb_connector_detect,
-	.destroy = ltdc_rgb_connector_destroy,
-	.reset = drm_atomic_helper_connector_reset,
-	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
-	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
-};
-
-struct drm_connector *ltdc_rgb_connector_create(struct drm_device *ddev)
-{
-	struct drm_connector *connector;
-	int err;
-
-	connector = devm_kzalloc(ddev->dev, sizeof(*connector), GFP_KERNEL);
-	if (!connector) {
-		DRM_ERROR("Failed to allocate connector\n");
-		return NULL;
-	}
-
-	connector->polled = DRM_CONNECTOR_POLL_HPD;
-
-	err = drm_connector_init(ddev, connector, &ltdc_rgb_connector_funcs,
-				 DRM_MODE_CONNECTOR_DPI);
-	if (err) {
-		DRM_ERROR("Failed to initialize connector\n");
-		return NULL;
-	}
-
-	drm_connector_helper_add(connector, &ltdc_rgb_connector_helper_funcs);
-
-	DRM_DEBUG_DRIVER("RGB connector:%d created\n", connector->base.id);
-
-	return connector;
 }
 
 static int ltdc_get_caps(struct drm_device *ddev)
@@ -972,7 +881,7 @@ static int ltdc_get_caps(struct drm_device *ddev)
 	return 0;
 }
 
-static struct drm_panel *ltdc_get_panel(struct drm_device *ddev)
+static struct drm_bridge *ltdc_get_bridge(struct drm_device *ddev)
 {
 	struct device *dev = ddev->dev;
 	struct device_node *np = dev->of_node;
@@ -1004,7 +913,10 @@ static struct drm_panel *ltdc_get_panel(struct drm_device *ddev)
 		}
 	}
 
-	return panel;
+	if (!panel)
+		return ERR_PTR(-ENODEV);
+
+	return drm_panel_bridge_add(panel, DRM_MODE_CONNECTOR_DPI);
 }
 
 int ltdc_load(struct drm_device *ddev)
@@ -1014,7 +926,6 @@ int ltdc_load(struct drm_device *ddev)
 	struct device *dev = ddev->dev;
 	struct device_node *np = dev->of_node;
 	struct drm_encoder *encoder;
-	struct drm_connector *connector = NULL;
 	struct drm_crtc *crtc;
 	struct reset_control *rstc;
 	struct resource res;
@@ -1022,8 +933,8 @@ int ltdc_load(struct drm_device *ddev)
 
 	DRM_DEBUG_DRIVER("\n");
 
-	ldev->panel = ltdc_get_panel(ddev);
-	if (!ldev->panel)
+	ldev->bridge = ltdc_get_bridge(ddev);
+	if (!ldev->bridge)
 		return -EPROBE_DEFER;
 
 	rstc = of_reset_control_get(np, NULL);
@@ -1082,7 +993,7 @@ int ltdc_load(struct drm_device *ddev)
 
 	DRM_INFO("ltdc hw version 0x%08x - ready\n", ldev->caps.hw_version);
 
-	if (ldev->panel) {
+	if (ldev->bridge) {
 		encoder = ltdc_rgb_encoder_create(ddev);
 		if (!encoder) {
 			DRM_ERROR("Failed to create RGB encoder\n");
@@ -1090,20 +1001,11 @@ int ltdc_load(struct drm_device *ddev)
 			goto err;
 		}
 
-		connector = ltdc_rgb_connector_create(ddev);
-		if (!connector) {
-			DRM_ERROR("Failed to create RGB connector\n");
-			ret = -EINVAL;
-			goto err;
-		}
-
-		ret = drm_mode_connector_attach_encoder(connector, encoder);
+		ret = drm_bridge_attach(encoder, ldev->bridge, NULL);
 		if (ret) {
-			DRM_ERROR("Failed to attach connector to encoder\n");
+			DRM_ERROR("Failed to attach bridge: %d\n", ret);
 			goto err;
 		}
-
-		drm_panel_attach(ldev->panel, connector);
 	}
 
 	crtc = devm_kzalloc(dev, sizeof(*crtc), GFP_KERNEL);
@@ -1130,8 +1032,8 @@ int ltdc_load(struct drm_device *ddev)
 
 	return 0;
 err:
-	if (ldev->panel)
-		drm_panel_detach(ldev->panel);
+	if (ldev->bridge)
+		drm_panel_bridge_remove(ldev->bridge);
 
 	clk_disable_unprepare(ldev->pixel_clk);
 
@@ -1143,9 +1045,6 @@ void ltdc_unload(struct drm_device *ddev)
 	struct ltdc_device *ldev = ddev->dev_private;
 
 	DRM_DEBUG_DRIVER("\n");
-
-	if (ldev->panel)
-		drm_panel_detach(ldev->panel);
 
 	clk_disable_unprepare(ldev->pixel_clk);
 }
