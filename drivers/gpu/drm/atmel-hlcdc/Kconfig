@@ -4,7 +4,7 @@ config DRM_ATMEL_HLCDC
 	select DRM_GEM_CMA_HELPER
 	select DRM_KMS_HELPER
 	select DRM_KMS_CMA_HELPER
-	select DRM_PANEL
+	select DRM_PANEL_BRIDGE
 	help
 	  Choose this option if you have an ATMEL SoC with an HLCDC display
 	  controller (i.e. at91sam9n12, at91sam9x5 family or sama5d3 family).
