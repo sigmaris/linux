@@ -161,7 +161,11 @@ static void vc4_dpi_encoder_disable(struct drm_encoder *encoder)
 	struct vc4_dpi_encoder *vc4_encoder = to_vc4_dpi_encoder(encoder);
 	struct vc4_dpi *dpi = vc4_encoder->dpi;
 
+	drm_bridge_disable(dpi->bridge);
+
 	clk_disable_unprepare(dpi->pixel_clock);
+
+	drm_bridge_post_disable(dpi->bridge);
 }
 
 static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
@@ -172,7 +176,9 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 	u32 dpi_c = DPI_ENABLE | DPI_OUTPUT_ENABLE_MODE;
 	int ret;
 
-	if (dpi->connector->display_info.num_bus_formats) {
+	drm_bridge_pre_enable(dpi->bridge);
+
+	if (dpi->connector && dpi->connector->display_info.num_bus_formats) {
 		u32 bus_format = dpi->connector->display_info.bus_formats[0];
 
 		switch (bus_format) {
@@ -201,8 +207,13 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 			DRM_ERROR("Unknown media bus format %d\n", bus_format);
 			break;
 		}
+	} else {
+		DRM_ERROR("mode=%p vc4_encoder=%p dpi=%p dpi->connector=%p\n",
+		          mode, vc4_encoder, dpi, dpi->connector);
+		dpi_c |= VC4_SET_FIELD(DPI_FORMAT_18BIT_666_RGB_1, DPI_FORMAT);
 	}
 
+	/*
 	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
 		dpi_c |= DPI_HSYNC_INVERT;
 	else if (!(mode->flags & DRM_MODE_FLAG_PHSYNC))
@@ -212,6 +223,7 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 		dpi_c |= DPI_VSYNC_INVERT;
 	else if (!(mode->flags & DRM_MODE_FLAG_PVSYNC))
 		dpi_c |= DPI_VSYNC_DISABLE;
+	*/
 
 	DPI_WRITE(DPI_C, dpi_c);
 
@@ -222,6 +234,8 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 	ret = clk_prepare_enable(dpi->pixel_clock);
 	if (ret)
 		DRM_ERROR("Failed to set clock rate: %d\n", ret);
+
+	drm_bridge_enable(dpi->bridge);
 }
 
 static bool vc4_dpi_encoder_mode_fixup(struct drm_encoder *encoder,
@@ -298,8 +312,10 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 
 	dpi->pdev = pdev;
 	dpi->regs = vc4_ioremap_regs(pdev, 0);
-	if (IS_ERR(dpi->regs))
+	if (IS_ERR(dpi->regs)) {
+		dev_err(dev, "DPI reg error: %ld\n", PTR_ERR(dpi->regs));
 		return PTR_ERR(dpi->regs);
+	}
 
 	if (DPI_READ(DPI_ID) != DPI_ID_VALUE) {
 		dev_err(dev, "Port returned 0x%08x for ID instead of 0x%08x\n",
@@ -310,6 +326,7 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 	dpi->core_clock = devm_clk_get(dev, "core");
 	if (IS_ERR(dpi->core_clock)) {
 		ret = PTR_ERR(dpi->core_clock);
+		dev_err(dev, "DPI core clock error: %d\n", ret);
 		if (ret != -EPROBE_DEFER)
 			DRM_ERROR("Failed to get core clock: %d\n", ret);
 		return ret;
@@ -317,6 +334,7 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 	dpi->pixel_clock = devm_clk_get(dev, "pixel");
 	if (IS_ERR(dpi->pixel_clock)) {
 		ret = PTR_ERR(dpi->pixel_clock);
+		dev_err(dev, "DPI pixel clock error: %d\n", ret);
 		if (ret != -EPROBE_DEFER)
 			DRM_ERROR("Failed to get pixel clock: %d\n", ret);
 		return ret;
@@ -331,8 +349,10 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 	drm_encoder_helper_add(dpi->encoder, &vc4_dpi_encoder_helper_funcs);
 
 	ret = vc4_dpi_init_bridge(dpi);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "DPI bridge init error: %d\n", ret);
 		goto err_destroy_encoder;
+	}
 
 	dev_set_drvdata(dev, dpi);
 

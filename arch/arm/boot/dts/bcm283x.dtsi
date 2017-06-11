@@ -422,6 +422,24 @@
 
 		};
 
+		/* begin added DPI */
+		dpi: dpi@7e208000 {
+			compatible = "brcm,bcm2835-dpi";
+			reg = <0x7e208000 0x8c>;
+			clocks = <&clocks BCM2835_CLOCK_VPU>,
+				 <&clocks BCM2835_CLOCK_DPI>;
+			clock-names = "core", "pixel";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+			port {
+				dpi_out: endpoint@0 {
+					remote-endpoint = <&vga_bridge_in>;
+				};
+			};
+		};
+		/* end added DPI */
+
 		thermal: thermal@7e212000 {
 			compatible = "brcm,bcm2835-thermal";
 			reg = <0x7e212000 0x8>;
@@ -625,6 +643,43 @@
 			#clock-cells = <0>;
 			clock-output-names = "otg";
 			clock-frequency = <480000000>;
+		};
+	};
+
+	bridge {
+		compatible = "dumb-vga-dac";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				vga_bridge_in: endpoint {
+					remote-endpoint = <&dpi_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				vga_bridge_out: endpoint {
+					remote-endpoint = <&vga_con_in>;
+				};
+			};
+		};
+	};
+
+	vga {
+		compatible = "vga-connector";
+
+		port {
+			vga_con_in: endpoint {
+				remote-endpoint = <&vga_bridge_out>;
+			};
 		};
 	};
 };
