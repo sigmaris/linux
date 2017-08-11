@@ -195,10 +195,12 @@
 				regulator-name = "vdd_logic";
 				regulator-min-microvolt = <712500>;
 				regulator-max-microvolt = <1450000>;
+				regulator-initial-mode = <0x1>;
 				regulator-ramp-delay = <12500>;
 				regulator-always-on;
 				regulator-boot-on;
 				regulator-state-mem {
+					regulator-mode = <0x2>;
 					regulator-on-in-suspend;
 					regulator-suspend-microvolt = <1000000>;
 				};
@@ -208,10 +210,12 @@
 				regulator-name = "vdd_arm";
 				regulator-min-microvolt = <712500>;
 				regulator-max-microvolt = <1450000>;
+				regulator-initial-mode = <0x1>;
 				regulator-ramp-delay = <12500>;
 				regulator-always-on;
 				regulator-boot-on;
 				regulator-state-mem {
+					regulator-mode = <0x2>;
 					regulator-on-in-suspend;
 					regulator-suspend-microvolt = <950000>;
 				};
@@ -219,9 +223,11 @@
 
 			vcc_ddr: DCDC_REG3 {
 				regulator-name = "vcc_ddr";
+				regulator-initial-mode = <0x1>;
 				regulator-always-on;
 				regulator-boot-on;
 				regulator-state-mem {
+					regulator-mode = <0x2>;
 					regulator-on-in-suspend;
 				};
 			};
@@ -230,9 +236,11 @@
 				regulator-name = "vcc_io";
 				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
+				regulator-initial-mode = <0x1>;
 				regulator-always-on;
 				regulator-boot-on;
 				regulator-state-mem {
+					regulator-mode = <0x2>;
 					regulator-on-in-suspend;
 					regulator-suspend-microvolt = <3300000>;
 				};
@@ -329,6 +337,7 @@
 	max-frequency = <150000000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_dectn &sdmmc0_bus4>;
+	supports-sd;
 	vmmc-supply = <&vcc_sd>;
 	status = "okay";
 };
