@@ -275,6 +275,7 @@ static int vc4_dpi_init_bridge(struct vc4_dpi *dpi)
 	ret = drm_of_find_panel_or_bridge(dev->of_node, 0, 0,
 					  &panel, &dpi->bridge);
 	if (ret) {
+		DRM_DEBUG("drm_of_find_panel_or_bridge returned error %d\n", ret);
 		/* If nothing was connected in the DT, that's not an
 		 * error.
 		 */
@@ -285,10 +286,12 @@ static int vc4_dpi_init_bridge(struct vc4_dpi *dpi)
 	}
 
 	if (panel) {
+		DRM_DEBUG("panel found\n");
 		dpi->bridge = drm_panel_bridge_add(panel,
 						   DRM_MODE_CONNECTOR_DPI);
 		dpi->is_panel_bridge = true;
 	}
+	DRM_DEBUG("attaching bridge %p with encoder %p\n", dpi->bridge, dpi->encoder);
 
 	return drm_bridge_attach(dpi->encoder, dpi->bridge, NULL);
 }
@@ -301,6 +304,8 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 	struct vc4_dpi *dpi;
 	struct vc4_dpi_encoder *vc4_dpi_encoder;
 	int ret;
+
+	DRM_DEBUG("in vc4_dpi_bind\n");
 
 	dpi = devm_kzalloc(dev, sizeof(*dpi), GFP_KERNEL);
 	if (!dpi)
@@ -348,17 +353,23 @@ static int vc4_dpi_bind(struct device *dev, struct device *master, void *data)
 			 DRM_MODE_ENCODER_DPI, NULL);
 	drm_encoder_helper_add(dpi->encoder, &vc4_dpi_encoder_helper_funcs);
 
+	DRM_DEBUG("about to init bridge in vc4_dpi_bind\n");
+
 	ret = vc4_dpi_init_bridge(dpi);
 	if (ret)
 		goto err_destroy_encoder;
 
+	DRM_DEBUG("init bridge in vc4_dpi_bind went OK\n");
+
 	dev_set_drvdata(dev, dpi);
 
 	vc4->dpi = dpi;
+	DRM_DEBUG("vc4_dpi_bind successful\n");
 
 	return 0;
 
 err_destroy_encoder:
+	DRM_DEBUG("vc4_dpi_bind error: %d\n", ret);
 	drm_encoder_cleanup(dpi->encoder);
 	clk_disable_unprepare(dpi->core_clock);
 	return ret;
