@@ -31,17 +31,17 @@
 					};
 
 					t_240p60: t_240p60 {
-						clock-frequency = <6700000>;
+						clock-frequency = <6400000>;
 						hactive = <320>;
-						hfront-porch = <16>;
-						hsync-len = <31>;
+						hfront-porch = <17>;
+						hsync-len = <30>;
 						hsync-active = <0>;
-						hback-porch = <59>;
+						hback-porch = <34>;
 						vactive = <240>;
-						vfront-porch = <4>;
+						vfront-porch = <1>;
 						vsync-len = <3>;
 						vsync-active = <0>;
-						vback-porch = <15>;
+						vback-porch = <22>;
 					};
 
 					t_480i60: t_480i60 {
