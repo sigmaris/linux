@@ -46,7 +46,7 @@
 
 					NTSC480i {
 						clock-frequency = <13400000>;
-						interlaced = <true>;
+						interlaced;
 						hactive = <640>;
 						hfront-porch = <32>;
 						hsync-len = <62>;
