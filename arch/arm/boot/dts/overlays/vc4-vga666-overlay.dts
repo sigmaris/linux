@@ -53,10 +53,10 @@
 						hsync-active = <0>;
 						hback-porch = <72>;
 						vactive = <480>;
-						vfront-porch = <11>;
-						vsync-len = <3>;
+						vfront-porch = <22>;
+						vsync-len = <5>;
 						vsync-active = <0>;
-						vback-porch = <12>;
+						vback-porch = <24>;
 					};
 				};
 
