@@ -40,6 +40,7 @@ drm_connector_to_vga666(struct drm_connector *connector)
 
 static int vga666_get_modes(struct drm_connector *connector)
 {
+	struct drm_device *dev = connector->dev;
 	struct vga666 *vga = drm_connector_to_vga666(connector);
 	struct display_timings *timings = vga->timings;
 	int i;
