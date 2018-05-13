@@ -20,28 +20,28 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
 
-struct vga666 {
+struct dpidac {
 	struct drm_bridge	bridge;
 	struct drm_connector	connector;
 	struct display_timings	*timings;
 };
 
-static inline struct vga666 *
-drm_bridge_to_vga666(struct drm_bridge *bridge)
+static inline struct dpidac *
+drm_bridge_to_dpidac(struct drm_bridge *bridge)
 {
-	return container_of(bridge, struct vga666, bridge);
+	return container_of(bridge, struct dpidac, bridge);
 }
 
-static inline struct vga666 *
-drm_connector_to_vga666(struct drm_connector *connector)
+static inline struct dpidac *
+drm_connector_to_dpidac(struct drm_connector *connector)
 {
-	return container_of(connector, struct vga666, connector);
+	return container_of(connector, struct dpidac, connector);
 }
 
-static int vga666_get_modes(struct drm_connector *connector)
+static int dpidac_get_modes(struct drm_connector *connector)
 {
 	struct drm_device *dev = connector->dev;
-	struct vga666 *vga = drm_connector_to_vga666(connector);
+	struct dpidac *vga = drm_connector_to_dpidac(connector);
 	struct display_timings *timings = vga->timings;
 	int i;
 
@@ -76,18 +76,18 @@ static int vga666_get_modes(struct drm_connector *connector)
 	return i;
 }
 
-static const struct drm_connector_helper_funcs vga666_con_helper_funcs = {
-	.get_modes	= vga666_get_modes,
+static const struct drm_connector_helper_funcs dpidac_con_helper_funcs = {
+	.get_modes	= dpidac_get_modes,
 };
 
 static enum drm_connector_status
-vga666_connector_detect(struct drm_connector *connector, bool force)
+dpidac_connector_detect(struct drm_connector *connector, bool force)
 {
 	return connector_status_connected;
 }
 
-static const struct drm_connector_funcs vga666_con_funcs = {
-	.detect			= vga666_connector_detect,
+static const struct drm_connector_funcs dpidac_con_funcs = {
+	.detect			= dpidac_connector_detect,
 	.fill_modes		= drm_helper_probe_single_connector_modes,
 	.destroy		= drm_connector_cleanup,
 	.reset			= drm_atomic_helper_connector_reset,
@@ -95,9 +95,9 @@ static const struct drm_connector_funcs vga666_con_funcs = {
 	.atomic_destroy_state	= drm_atomic_helper_connector_destroy_state,
 };
 
-static int vga666_attach(struct drm_bridge *bridge)
+static int dpidac_attach(struct drm_bridge *bridge)
 {
-	struct vga666 *vga = drm_bridge_to_vga666(bridge);
+	struct dpidac *vga = drm_bridge_to_dpidac(bridge);
 	u32 bus_format = MEDIA_BUS_FMT_RGB666_1X18;
 	int ret;
 
@@ -107,9 +107,9 @@ static int vga666_attach(struct drm_bridge *bridge)
 	}
 
 	drm_connector_helper_add(&vga->connector,
-				 &vga666_con_helper_funcs);
+				 &dpidac_con_helper_funcs);
 	ret = drm_connector_init(bridge->dev, &vga->connector,
-				 &vga666_con_funcs, DRM_MODE_CONNECTOR_VGA);
+				 &dpidac_con_funcs, DRM_MODE_CONNECTOR_VGA);
 	if (ret) {
 		DRM_ERROR("Failed to initialize connector\n");
 		return ret;
@@ -130,13 +130,13 @@ static int vga666_attach(struct drm_bridge *bridge)
 	return 0;
 }
 
-static const struct drm_bridge_funcs vga666_bridge_funcs = {
-	.attach		= vga666_attach,
+static const struct drm_bridge_funcs dpidac_bridge_funcs = {
+	.attach		= dpidac_attach,
 };
 
-static int vga666_probe(struct platform_device *pdev)
+static int dpidac_probe(struct platform_device *pdev)
 {
-	struct vga666 *vga;
+	struct dpidac *vga;
 
 	vga = devm_kzalloc(&pdev->dev, sizeof(*vga), GFP_KERNEL);
 	if (!vga)
@@ -146,7 +146,7 @@ static int vga666_probe(struct platform_device *pdev)
 	vga->timings = of_get_display_timings(pdev->dev.of_node);
 	DRM_DEBUG("display-timings from DT: %p\n", vga->timings);
 
-	vga->bridge.funcs = &vga666_bridge_funcs;
+	vga->bridge.funcs = &dpidac_bridge_funcs;
 	vga->bridge.of_node = pdev->dev.of_node;
 
 	drm_bridge_add(&vga->bridge);
@@ -154,9 +154,9 @@ static int vga666_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int vga666_remove(struct platform_device *pdev)
+static int dpidac_remove(struct platform_device *pdev)
 {
-	struct vga666 *vga = platform_get_drvdata(pdev);
+	struct dpidac *vga = platform_get_drvdata(pdev);
 
 	if (vga->timings) {
 		display_timings_release(vga->timings);
@@ -167,22 +167,22 @@ static int vga666_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct of_device_id vga666_match[] = {
-	{ .compatible = "fenlogic,vga666" },
+static const struct of_device_id dpidac_match[] = {
+	{ .compatible = "raspberrypi,dpidac" },
 	{},
 };
-MODULE_DEVICE_TABLE(of, vga666_match);
+MODULE_DEVICE_TABLE(of, dpidac_match);
 
-static struct platform_driver vga666_driver = {
-	.probe	= vga666_probe,
-	.remove	= vga666_remove,
+static struct platform_driver dpidac_driver = {
+	.probe	= dpidac_probe,
+	.remove	= dpidac_remove,
 	.driver		= {
-		.name		= "vga666",
-		.of_match_table	= vga666_match,
+		.name		= "rpi-dpidac",
+		.of_match_table	= dpidac_match,
 	},
 };
-module_platform_driver(vga666_driver);
+module_platform_driver(dpidac_driver);
 
 MODULE_AUTHOR("Hugh Cole-Baker <sigmaris@gmail.com>");
-MODULE_DESCRIPTION("VGA666 DPI-to-VGA bridge driver");
+MODULE_DESCRIPTION("Raspberry Pi DPI DAC bridge driver");
 MODULE_LICENSE("GPL");
