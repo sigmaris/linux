@@ -10,7 +10,7 @@
 		target-path = "/";
 		__overlay__ {
 			bridge: bridge {
-				compatible = "dumb-vga-dac";
+				compatible = "fenlogic,vga666";
 				#address-cells = <1>;
 				#size-cells = <0>;
 

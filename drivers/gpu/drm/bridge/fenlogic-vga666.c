@@ -29,6 +29,7 @@ drm_bridge_to_vga666(struct drm_bridge *bridge)
 
 static int vga666_get_modes(struct drm_connector *connector)
 {
+	int ret;
 	/*
 	 * Since there is no DDC connection, use XGA standard modes
 	 */
@@ -62,7 +63,7 @@ static const struct drm_connector_funcs vga666_con_funcs = {
 static int vga666_attach(struct drm_bridge *bridge)
 {
 	struct vga666 *vga = drm_bridge_to_vga666(bridge);
-	u32 bus_format = DPI_FORMAT_18BIT_666_RGB_1;
+	u32 bus_format = MEDIA_BUS_FMT_RGB666_1X18;
 	int ret;
 
 	if (!bridge->encoder) {
@@ -78,7 +79,7 @@ static int vga666_attach(struct drm_bridge *bridge)
 		DRM_ERROR("Failed to initialize connector\n");
 		return ret;
 	}
-	ret = drm_display_info_set_bus_formats(&vga->connector->display_info,
+	ret = drm_display_info_set_bus_formats(&vga->connector.display_info,
 					       &bus_format, 1);
 	if (ret) {
 		DRM_ERROR("Failed to set bus format\n");
