@@ -121,6 +121,9 @@ static int vga666_attach(struct drm_bridge *bridge)
 		return ret;
 	}
 
+	vga->connector.interlace_allowed = 1;
+	vga->connector.doublescan_allowed = 1;
+
 	drm_mode_connector_attach_encoder(&vga->connector,
 					  bridge->encoder);
 
