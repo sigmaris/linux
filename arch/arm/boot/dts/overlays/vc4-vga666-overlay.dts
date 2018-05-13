@@ -15,8 +15,8 @@
 				#size-cells = <0>;
 
 				display-timings {
-					native-mode = <&NTSC240p>;
-					VGA {
+					native-mode = <&t_240p60>;
+					t_vga: t_vga {
 						clock-frequency = <25180000>;
 						hactive = <640>;
 						hfront-porch = <16>;
@@ -30,7 +30,7 @@
 						vback-porch = <33>;
 					};
 
-					NTSC240p {
+					t_240p60: t_240p60 {
 						clock-frequency = <6700000>;
 						hactive = <320>;
 						hfront-porch = <16>;
@@ -44,7 +44,7 @@
 						vback-porch = <15>;
 					};
 
-					NTSC480i {
+					t_480i60: t_480i60 {
 						clock-frequency = <13400000>;
 						interlaced;
 						hactive = <640>;
