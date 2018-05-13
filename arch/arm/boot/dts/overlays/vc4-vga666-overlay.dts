@@ -45,18 +45,18 @@
 					};
 
 					t_480i60: t_480i60 {
-						clock-frequency = <13400000>;
+						clock-frequency = <12800000>;
 						interlaced;
 						hactive = <640>;
-						hfront-porch = <32>;
-						hsync-len = <62>;
+						hfront-porch = <30>;
+						hsync-len = <60>;
 						hsync-active = <0>;
-						hback-porch = <118>;
+						hback-porch = <72>;
 						vactive = <480>;
-						vfront-porch = <4>;
-						vsync-len = <2 2 3>;
+						vfront-porch = <1>;
+						vsync-len = <3>;
 						vsync-active = <0>;
-						vback-porch = <16>;
+						vback-porch = <22>;
 					};
 				};
 
