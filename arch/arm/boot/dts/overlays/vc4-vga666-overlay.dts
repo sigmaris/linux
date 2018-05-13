@@ -42,7 +42,7 @@
 						vsync-len = <3>;
 						vsync-active = <0>;
 						vback-porch = <15>;
-					}
+					};
 
 					NTSC480i {
 						clock-frequency = <13400000>;
@@ -57,7 +57,7 @@
 						vsync-len = <2 2 3>;
 						vsync-active = <0>;
 						vback-porch = <16>;
-					}
+					};
 				};
 
 				ports {
