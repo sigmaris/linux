@@ -14,6 +14,52 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
+				display-timings {
+					native-mode = <&NTSC240p>;
+					VGA {
+						clock-frequency = <25180000>;
+						hactive = <640>;
+						hfront-porch = <16>;
+						hsync-len = <96>;
+						hsync-active = <0>;
+						hback-porch = <48>;
+						vactive = <480>;
+						vfront-porch = <10>;
+						vsync-len = <2>;
+						vsync-active = <0>;
+						vback-porch = <33>;
+					};
+
+					NTSC240p {
+						clock-frequency = <6700000>;
+						hactive = <320>;
+						hfront-porch = <16>;
+						hsync-len = <31>;
+						hsync-active = <0>;
+						hback-porch = <59>;
+						vactive = <240>;
+						vfront-porch = <4>;
+						vsync-len = <3>;
+						vsync-active = <0>;
+						vback-porch = <15>;
+					}
+
+					NTSC480i {
+						clock-frequency = <13400000>;
+						interlaced = <true>;
+						hactive = <640>;
+						hfront-porch = <32>;
+						hsync-len = <62>;
+						hsync-active = <0>;
+						hback-porch = <118>;
+						vactive = <480>;
+						vfront-porch = <4>;
+						vsync-len = <2 2 3>;
+						vsync-active = <0>;
+						vback-porch = <16>;
+					}
+				};
+
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
