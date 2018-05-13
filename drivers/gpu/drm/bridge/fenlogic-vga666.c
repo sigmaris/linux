@@ -11,6 +11,10 @@
 
 #include <linux/module.h>
 
+#include <video/display_timing.h>
+#include <video/of_display_timing.h>
+#include <video/videomode.h>
+
 #include <drm/drmP.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc.h>
@@ -19,6 +23,7 @@
 struct vga666 {
 	struct drm_bridge	bridge;
 	struct drm_connector	connector;
+	struct display_timings	*timings;
 };
 
 static inline struct vga666 *
@@ -27,18 +32,47 @@ drm_bridge_to_vga666(struct drm_bridge *bridge)
 	return container_of(bridge, struct vga666, bridge);
 }
 
+static inline struct vga666 *
+drm_connector_to_vga666(struct drm_connector *connector)
+{
+	return container_of(connector, struct vga666, connector);
+}
+
 static int vga666_get_modes(struct drm_connector *connector)
 {
-	int ret;
-	/*
-	 * Since there is no DDC connection, use XGA standard modes
-	 */
-	ret = drm_add_modes_noedid(connector, 1920, 1200);
+	struct vga666 *vga = drm_connector_to_vga666(connector);
+	struct display_timings *timings = vga->timings;
+	int i;
 
-	/* And prefer a mode pretty much anyone can handle */
-	drm_set_preferred_mode(connector, 1024, 768);
+	if(timings) {
+		DRM_DEBUG("using display-timings to create modes\n");
+		for (i = 0; i < timings->num_timings; i++) {
+			struct drm_display_mode *mode = drm_mode_create(dev);
+			struct videomode vm;
 
-	return ret;
+			if (videomode_from_timings(timings, &vm, i))
+				break;
+
+			drm_display_mode_from_videomode(&vm, mode);
+
+			mode->type = DRM_MODE_TYPE_DRIVER;
+
+			if (timings->native_mode == i)
+				mode->type |= DRM_MODE_TYPE_PREFERRED;
+
+			drm_mode_set_name(mode);
+			drm_mode_probed_add(connector, mode);
+		}
+	} else {
+		DRM_DEBUG("fallback to XGA modes\n");
+		/* Since there is no timing data, use XGA standard modes */
+		i = drm_add_modes_noedid(connector, 1920, 1200);
+
+		/* And prefer a mode pretty much anyone can handle */
+		drm_set_preferred_mode(connector, 1024, 768);
+	}
+
+	return i;
 }
 
 static const struct drm_connector_helper_funcs vga666_con_helper_funcs = {
@@ -105,6 +139,11 @@ static int vga666_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	platform_set_drvdata(pdev, vga);
 
+	if (of_display_timings_exist(pdev->dev.of_node) == 1) {
+		vga->timings = of_get_display_timings(pdev->dev.of_node);
+		DRM_DEBUG("display-timings found in DT, loaded as %p\n", vga->timings);
+	}
+
 	vga->bridge.funcs = &vga666_bridge_funcs;
 	vga->bridge.of_node = pdev->dev.of_node;
 
@@ -116,6 +155,10 @@ static int vga666_probe(struct platform_device *pdev)
 static int vga666_remove(struct platform_device *pdev)
 {
 	struct vga666 *vga = platform_get_drvdata(pdev);
+
+	if (vga->timings) {
+		display_timings_release(vga->timings);
+	}
 
 	drm_bridge_remove(&vga->bridge);
 
