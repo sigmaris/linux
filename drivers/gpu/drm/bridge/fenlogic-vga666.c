@@ -140,10 +140,8 @@ static int vga666_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	platform_set_drvdata(pdev, vga);
 
-	if (of_display_timings_exist(pdev->dev.of_node) == 1) {
-		vga->timings = of_get_display_timings(pdev->dev.of_node);
-		DRM_DEBUG("display-timings found in DT, loaded as %p\n", vga->timings);
-	}
+	vga->timings = of_get_display_timings(pdev->dev.of_node);
+	DRM_DEBUG("display-timings from DT: %p\n", vga->timings);
 
 	vga->bridge.funcs = &vga666_bridge_funcs;
 	vga->bridge.of_node = pdev->dev.of_node;
