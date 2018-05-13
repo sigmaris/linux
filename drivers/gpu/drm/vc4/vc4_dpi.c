@@ -179,17 +179,22 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 	 * bus_format we want, but it doesn't yet, so assume that it's
 	 * uniform throughout the bridge chain.
 	 */
+	DRM_DEBUG("DPI connector lookup...\n");
 	drm_connector_list_iter_begin(dev, &conn_iter);
 	drm_for_each_connector_iter(connector_scan, &conn_iter) {
 		if (connector_scan->encoder == encoder) {
 			connector = connector_scan;
+			DRM_DEBUG("DPI connector %s found\n", connector->name);
 			break;
 		}
 	}
 	drm_connector_list_iter_end(&conn_iter);
+	DRM_DEBUG("DPI connector lookup ended.\n");
 
 	if (connector && connector->display_info.num_bus_formats) {
 		u32 bus_format = connector->display_info.bus_formats[0];
+
+		DRM_DEBUG("DPI connector has bus format: %u\n", bus_format);
 
 		switch (bus_format) {
 		case MEDIA_BUS_FMT_RGB888_1X24:
@@ -218,6 +223,7 @@ static void vc4_dpi_encoder_enable(struct drm_encoder *encoder)
 			break;
 		}
 	} else {
+		DRM_DEBUG("DPI connector has NO bus format\n");
 		/* Default to 24bit if no connector found. */
 		dpi_c |= VC4_SET_FIELD(DPI_FORMAT_24BIT_888_RGB, DPI_FORMAT);
 	}
