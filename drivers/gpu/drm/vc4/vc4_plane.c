@@ -521,10 +521,12 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 	struct drm_framebuffer *fb = state->fb;
 	u32 ctl0_offset = vc4_state->dlist_count;
 	const struct hvs_format *format = vc4_get_hvs_format(fb->format->format);
+	u64 base_format_mod = fourcc_mod_broadcom_mod(fb->modifier);
 	int num_planes = drm_format_num_planes(format->drm);
 	u32 scl0, scl1, pitch0;
 	u32 lbm_size, tiling;
 	unsigned long irqflags;
+	u32 hvs_format = format->hvs;
 	int ret, i;
 
 	ret = vc4_plane_setup_clipping_and_scaling(state);
@@ -564,7 +566,7 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 		scl1 = vc4_get_scl_field(state, 0);
 	}
 
-	switch (fb->modifier) {
+	switch (base_format_mod) {
 	case DRM_FORMAT_MOD_LINEAR:
 		tiling = SCALER_CTL0_TILING_LINEAR;
 		pitch0 = VC4_SET_FIELD(fb->pitches[0], SCALER_SRC_PITCH);
@@ -587,6 +589,49 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 		break;
 	}
 
+	case DRM_FORMAT_MOD_BROADCOM_SAND64:
+	case DRM_FORMAT_MOD_BROADCOM_SAND128:
+	case DRM_FORMAT_MOD_BROADCOM_SAND256: {
+		uint32_t param = fourcc_mod_broadcom_param(fb->modifier);
+
+		/* Column-based NV12 or RGBA.
+		 */
+		if (fb->format->num_planes > 1) {
+			if (hvs_format != HVS_PIXEL_FORMAT_YCBCR_YUV420_2PLANE) {
+				DRM_DEBUG_KMS("SAND format only valid for NV12/21");
+				return -EINVAL;
+			}
+			hvs_format = HVS_PIXEL_FORMAT_H264;
+		} else {
+			if (base_format_mod == DRM_FORMAT_MOD_BROADCOM_SAND256) {
+				DRM_DEBUG_KMS("SAND256 format only valid for H.264");
+				return -EINVAL;
+			}
+		}
+
+		switch (base_format_mod) {
+		case DRM_FORMAT_MOD_BROADCOM_SAND64:
+			tiling = SCALER_CTL0_TILING_64B;
+			break;
+		case DRM_FORMAT_MOD_BROADCOM_SAND128:
+			tiling = SCALER_CTL0_TILING_128B;
+			break;
+		case DRM_FORMAT_MOD_BROADCOM_SAND256:
+			tiling = SCALER_CTL0_TILING_256B_OR_T;
+			break;
+		default:
+			break;
+		}
+
+		if (param > SCALER_TILE_HEIGHT_MASK) {
+			DRM_DEBUG_KMS("SAND height too large (%d)\n", param);
+			return -EINVAL;
+		}
+
+		pitch0 = VC4_SET_FIELD(param, SCALER_TILE_HEIGHT);
+		break;
+	}
+
 	default:
 		DRM_DEBUG_KMS("Unsupported FB tiling flag 0x%16llx",
 			      (long long)fb->modifier);
@@ -597,7 +642,7 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 	vc4_dlist_write(vc4_state,
 			SCALER_CTL0_VALID |
 			(format->pixel_order << SCALER_CTL0_ORDER_SHIFT) |
-			(format->hvs << SCALER_CTL0_PIXEL_FORMAT_SHIFT) |
+			(hvs_format << SCALER_CTL0_PIXEL_FORMAT_SHIFT) |
 			VC4_SET_FIELD(tiling, SCALER_CTL0_TILING) |
 			(vc4_state->is_unity ? SCALER_CTL0_UNITY : 0) |
 			VC4_SET_FIELD(scl0, SCALER_CTL0_SCL0) |
@@ -650,8 +695,13 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 
 	/* Pitch word 1/2 */
 	for (i = 1; i < num_planes; i++) {
-		vc4_dlist_write(vc4_state,
-				VC4_SET_FIELD(fb->pitches[i], SCALER_SRC_PITCH));
+		if (hvs_format != HVS_PIXEL_FORMAT_H264) {
+			vc4_dlist_write(vc4_state,
+					VC4_SET_FIELD(fb->pitches[i],
+						      SCALER_SRC_PITCH));
+		} else {
+			vc4_dlist_write(vc4_state, pitch0);
+		}
 	}
 
 	/* Colorspace conversion words */
@@ -907,6 +957,51 @@ out:
 					      ctx);
 }
 
+static bool vc4_format_mod_supported(struct drm_plane *plane,
+				     uint32_t format,
+				     uint64_t modifier)
+{
+	/* Support T_TILING for RGB formats only. */
+	switch (format) {
+	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ARGB8888:
+	case DRM_FORMAT_ABGR8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
+	case DRM_FORMAT_ARGB1555:
+	case DRM_FORMAT_XRGB1555:
+		switch (fourcc_mod_broadcom_mod(modifier)) {
+		case DRM_FORMAT_MOD_LINEAR:
+		case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
+		case DRM_FORMAT_MOD_BROADCOM_SAND64:
+		case DRM_FORMAT_MOD_BROADCOM_SAND128:
+			return true;
+		default:
+			return false;
+		}
+	case DRM_FORMAT_NV12:
+	case DRM_FORMAT_NV21:
+		switch (fourcc_mod_broadcom_mod(modifier)) {
+		case DRM_FORMAT_MOD_LINEAR:
+		case DRM_FORMAT_MOD_BROADCOM_SAND64:
+		case DRM_FORMAT_MOD_BROADCOM_SAND128:
+		case DRM_FORMAT_MOD_BROADCOM_SAND256:
+			return true;
+		default:
+			return false;
+		}
+	case DRM_FORMAT_YUV422:
+	case DRM_FORMAT_YVU422:
+	case DRM_FORMAT_YUV420:
+	case DRM_FORMAT_YVU420:
+	case DRM_FORMAT_NV16:
+	case DRM_FORMAT_NV61:
+	default:
+		return (modifier == DRM_FORMAT_MOD_LINEAR);
+	}
+}
+
 static const struct drm_plane_funcs vc4_plane_funcs = {
 	.update_plane = vc4_update_plane,
 	.disable_plane = drm_atomic_helper_disable_plane,
@@ -915,6 +1010,7 @@ static const struct drm_plane_funcs vc4_plane_funcs = {
 	.reset = vc4_plane_reset,
 	.atomic_duplicate_state = vc4_plane_duplicate_state,
 	.atomic_destroy_state = vc4_plane_destroy_state,
+	.format_mod_supported = vc4_format_mod_supported,
 };
 
 struct drm_plane *vc4_plane_init(struct drm_device *dev,
@@ -926,6 +1022,14 @@ struct drm_plane *vc4_plane_init(struct drm_device *dev,
 	u32 num_formats = 0;
 	int ret = 0;
 	unsigned i;
+	static const uint64_t modifiers[] = {
+		DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED,
+		DRM_FORMAT_MOD_BROADCOM_SAND128,
+		DRM_FORMAT_MOD_BROADCOM_SAND64,
+		DRM_FORMAT_MOD_BROADCOM_SAND256,
+		DRM_FORMAT_MOD_LINEAR,
+		DRM_FORMAT_MOD_INVALID
+	};
 
 	vc4_plane = devm_kzalloc(dev->dev, sizeof(*vc4_plane),
 				 GFP_KERNEL);
@@ -946,7 +1050,7 @@ struct drm_plane *vc4_plane_init(struct drm_device *dev,
 	ret = drm_universal_plane_init(dev, plane, 0,
 				       &vc4_plane_funcs,
 				       formats, num_formats,
-				       NULL, type, NULL);
+				       modifiers, type, NULL);
 
 	drm_plane_helper_add(plane, &vc4_plane_helper_funcs);
 
