@@ -58,11 +58,12 @@
 		};
 	};
 
-	fan: pwm-fan {
+	fan0: pwm-fan {
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
 		fan-supply = <&vcc12v_dcin>;
 		pwms = <&pwm1 0 50000 0>;
+		cooling-levels = <0 102 170 230>;
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -206,6 +207,21 @@
 
 &cpu_b1 {
 	cpu-supply = <&vdd_cpu_b>;
+};
+
+&cooling_maps {
+	map2 {
+		trip = <&cpu_alert0>;
+		cooling-device = <&fan0 0 1>;
+	};
+	map3 {
+		trip = <&cpu_alert1>;
+		cooling-device = <&fan0 1 2>;
+	};
+	map4 {
+		trip = <&cpu_crit>;
+		cooling-device = <&fan0 2 3>;
+	};
 };
 
 &emmc_phy {
