@@ -95,7 +95,8 @@
 	sound {
 		compatible = "audio-graph-card";
 		label = "rockchip,rk3328";
-		dais = <&spdif_p0>;
+		dais = <&i2s1_p0
+			&spdif_p0>;
 	};
 
 	spdif-dit {
@@ -114,6 +115,17 @@
 		regulator-name = "vcc_phy";
 		regulator-always-on;
 		regulator-boot-on;
+	};
+};
+
+&codec {
+	status = "okay";
+	#sound-dai-cells = <0>;
+
+	port@0 {
+		codec_p0_0: endpoint {
+			remote-endpoint = <&i2s1_p0_0>;
+		};
 	};
 };
 
@@ -299,6 +311,19 @@
 					regulator-suspend-microvolt = <1000000>;
 				};
 			};
+		};
+	};
+};
+
+&i2s1 {
+	status = "okay";
+	#sound-dai-cells = <0>;
+
+	i2s1_p0: port {
+		i2s1_p0_0: endpoint {
+			dai-format = "i2s";
+			mclk-fs = <256>;
+			remote-endpoint = <&codec_p0_0>;
 		};
 	};
 };
