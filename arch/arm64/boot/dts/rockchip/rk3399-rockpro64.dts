@@ -457,7 +457,7 @@
 		reg = <0x41>;
 		regulator-compatible = "fan53555-reg";
 		pinctrl-0 = <&vsel2_gpio>;
-		vsel-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
+		vsel-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 		fcs,suspend-voltage-selector = <1>;
 		regulator-name = "vdd_gpu";
 		regulator-min-microvolt = <712500>;
@@ -609,7 +609,7 @@
 		};
 
 		vsel2_gpio: vsel2-gpio {
-			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <1 RK_PB6 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
 
