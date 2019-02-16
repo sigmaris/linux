@@ -372,11 +372,13 @@ static void vc4_crtc_mode_set_nofb(struct drm_crtc *crtc)
 	struct drm_crtc_state *state = crtc->state;
 	struct drm_display_mode *mode = &state->adjusted_mode;
 	bool interlace = mode->flags & DRM_MODE_FLAG_INTERLACE;
+	bool odd_field_first = (vc4_encoder->type == VC4_ENCODER_TYPE_DPI);
 	u32 pixel_rep = (mode->flags & DRM_MODE_FLAG_DBLCLK) ? 2 : 1;
+	u32 ilace_delay = (mode->htotal * pixel_rep / 2);
 	bool is_dsi = (vc4_encoder->type == VC4_ENCODER_TYPE_DSI0 ||
 		       vc4_encoder->type == VC4_ENCODER_TYPE_DSI1);
 	u32 format = is_dsi ? PV_CONTROL_FORMAT_DSIV_24 : PV_CONTROL_FORMAT_24;
-	bool debug_dump_regs = false;
+	bool debug_dump_regs = true;
 
 	if (debug_dump_regs) {
 		DRM_INFO("CRTC %d regs before:\n", drm_crtc_index(crtc));
@@ -434,9 +436,10 @@ static void vc4_crtc_mode_set_nofb(struct drm_crtc *crtc)
 			   PV_VCONTROL_CONTINUOUS |
 			   (is_dsi ? PV_VCONTROL_DSI : 0) |
 			   PV_VCONTROL_INTERLACE |
-			   VC4_SET_FIELD(mode->htotal * pixel_rep / 2,
-					 PV_VCONTROL_ODD_DELAY));
-		CRTC_WRITE(PV_VSYNCD_EVEN, 0);
+			   (odd_field_first ? PV_VCONTROL_ODD_FIRST : 0) |
+			   (odd_field_first ? 0 : VC4_SET_FIELD(ilace_delay,
+					 PV_VCONTROL_ODD_DELAY)));
+		CRTC_WRITE(PV_VSYNCD_EVEN, (odd_field_first ? ilace_delay : 0));
 	} else {
 		CRTC_WRITE(PV_V_CONTROL,
 			   PV_VCONTROL_CONTINUOUS |
