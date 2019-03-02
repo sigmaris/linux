@@ -75,6 +75,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <485>;
 		};
 
 		cpu_l1: cpu@1 {
@@ -86,6 +87,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <485>;
 		};
 
 		cpu_l2: cpu@2 {
@@ -97,6 +99,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <485>;
 		};
 
 		cpu_l3: cpu@3 {
@@ -108,6 +111,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <485>;
 		};
 
 		cpu_b0: cpu@100 {
@@ -119,6 +123,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <436>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <1024>;
 		};
 
 		cpu_b1: cpu@101 {
@@ -130,6 +135,7 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <436>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			capacity-dmips-mhz = <1024>;
 		};
 
 		idle-states {
