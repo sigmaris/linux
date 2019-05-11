@@ -1,0 +1,42 @@
+image: debian:buster
+
+stages:
+  - build
+
+before_script:
+  - 'apt-get install -y bc bison build-essential curl flex gcc-aarch64-linux-gnu git jq'
+
+build:
+  script:
+    - 'export ARCH=arm64'
+    - 'export CROSS_COMPILE="aarch64-linux-gnu-"'
+    - 'echo "-g$(git rev-parse --short HEAD)-sigmaris" > .scmversion'
+    - 'export KDEB_PKGVERSION="$(make kernelrelease)"'
+    - 'make rockchip_linux_defconfig'
+    - 'make -j$(nproc) bindeb-pkg'
+    - >-
+      export API_JSON=$(printf ''{
+      "tag_name": "rockpro64-kernel-%s",
+      "target_commitish": "%s",
+      "name": "rockpro64-kernel-%s",
+      "body": "Kernel for RockPro64 %s",
+      "draft": false,
+      "prerelease": false
+      }''
+      "$KDEB_PKGVERSION"
+      "$(git rev-parse HEAD)"
+      "$KDEB_PKGVERSION"
+      "$KDEB_PKGVERSION"
+      )
+    - >-
+      curl --data "$API_JSON"
+      --output gh_response.json
+      -H "Authorization: token $GH_ACCESS_TOKEN"
+      "https://api.github.com/repos/${GH_USERNAME}/linux/releases"
+    - |
+      for PKGFILE in ../linux-*.deb
+      do
+        PKGNAME="$(basename $PKGFILE)"
+        URL="$(jq -r .upload_url gh_response.json | sed "s/{?.*}\$/?name=${PKGNAME}/" )"
+        curl --data-binary "@$PKGFILE" -H "Authorization: token $GH_ACCESS_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" "$URL"
+      done
