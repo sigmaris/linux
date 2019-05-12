@@ -13,8 +13,8 @@ build:
     - 'export ARCH=arm64'
     - 'export CROSS_COMPILE="aarch64-linux-gnu-"'
     - 'echo "-g$(git rev-parse --short HEAD)-sigmaris" > .scmversion'
-    - 'export KDEB_PKGVERSION="$(make kernelrelease)"'
     - 'make rockchip_linux_defconfig'
+    - 'export KDEB_PKGVERSION="$(make kernelrelease)"'
     - 'make -j$(nproc) bindeb-pkg'
     - >-
       export API_JSON=$(printf ''{
