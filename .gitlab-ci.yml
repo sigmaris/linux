@@ -4,6 +4,7 @@ stages:
   - build
 
 before_script:
+  - 'apt-get update'
   - 'apt-get install -y bc bison build-essential curl flex gcc-aarch64-linux-gnu git jq'
 
 build:
