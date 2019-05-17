@@ -17,14 +17,14 @@ build:
     - 'export KDEB_PKGVERSION="$(make kernelrelease)"'
     - 'make -j$(nproc) bindeb-pkg'
     - >-
-      export API_JSON=$(printf ''{
+      export API_JSON=$(printf '{
       "tag_name": "rockpro64-kernel-%s",
       "target_commitish": "%s",
       "name": "rockpro64-kernel-%s",
       "body": "Kernel for RockPro64 %s",
       "draft": false,
       "prerelease": false
-      }''
+      }'
       "$KDEB_PKGVERSION"
       "$(git rev-parse HEAD)"
       "$KDEB_PKGVERSION"
