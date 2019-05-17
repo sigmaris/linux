@@ -15,7 +15,7 @@ build:
     - 'echo "-g$(git rev-parse --short HEAD)-sigmaris" > .scmversion'
     - 'make rockchip_linux_defconfig'
     - 'export KDEB_PKGVERSION="$(make kernelrelease)"'
-    - 'make -j$(nproc) bindeb-pkg'
+#    - 'make -j$(nproc) bindeb-pkg'
     - >-
       export API_JSON=$(printf ''{
       "tag_name": "rockpro64-kernel-%s",
@@ -35,6 +35,7 @@ build:
       --output gh_response.json
       -H "Authorization: token $GH_ACCESS_TOKEN"
       "https://api.github.com/repos/${GH_USERNAME}/linux/releases"
+    - 'echo "Github response JSON: $(cat gh_response.json)"'
     - |
       for PKGFILE in ../linux-*.deb
       do
