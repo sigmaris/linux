@@ -8,6 +8,10 @@ before_script:
   - 'apt-get install -y bc bison build-essential cpio curl flex gcc-aarch64-linux-gnu git jq kmod'
 
 build:
+  only:
+    - /^ci-.*$/
+  except:
+    - tags
   stage: build
   script:
     - 'export ARCH=arm64'
