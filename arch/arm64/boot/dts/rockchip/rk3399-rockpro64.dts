@@ -519,10 +519,10 @@
 	i2c-scl-falling-time-ns = <15>;
 	status = "okay";
 
-	es8316: es8316@10 {
+	es8316: es8316@11 {
 		#sound-dai-cells = <0>;
 		compatible = "everest,es8316";
-		reg = <0x10>;
+		reg = <0x11>;
 		clocks = <&cru SCLK_I2S_8CH_OUT>;
 		clock-names = "mclk";
 		hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;
