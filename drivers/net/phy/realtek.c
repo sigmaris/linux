@@ -28,7 +28,10 @@
 
 #define RTL8211F_INSR				0x1d
 
-#define RTL8211F_TX_DELAY			BIT(8)
+#define RTL8211F_RX_DELAY_REG			0x15
+#define RTL8211F_RX_DELAY_EN			BIT(3)
+#define RTL8211F_TX_DELAY_REG			0x11
+#define RTL8211F_TX_DELAY_EN			BIT(8)
 #define RTL8211E_TX_DELAY			BIT(1)
 #define RTL8211E_RX_DELAY			BIT(2)
 #define RTL8211E_MODE_MII_GMII			BIT(3)
@@ -161,25 +164,38 @@ static int rtl8211c_config_init(struct phy_device *phydev)
 
 static int rtl8211f_config_init(struct phy_device *phydev)
 {
-	u16 val;
+	int ret = 0;
 
 	/* enable TX-delay for rgmii-{id,txid}, and disable it for rgmii and
-	 * rgmii-rxid. The RX-delay can be enabled by the external RXDLY pin.
+	 * rgmii-rxid.
 	 */
 	switch (phydev->interface) {
 	case PHY_INTERFACE_MODE_RGMII:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
-		val = 0;
+		ret = phy_modify_paged(phydev, 0xd08, RTL8211F_TX_DELAY_REG, RTL8211F_TX_DELAY_EN, 0);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		val = RTL8211F_TX_DELAY;
+		ret = phy_modify_paged(phydev, 0xd08, RTL8211F_TX_DELAY_REG, RTL8211F_TX_DELAY_EN, RTL8211F_TX_DELAY_EN);
 		break;
-	default: /* the rest of the modes imply leaving delay as is. */
-		return 0;
+	/* the rest of the modes imply leaving TX-delay as is. */
 	}
 
-	return phy_modify_paged(phydev, 0xd08, 0x11, RTL8211F_TX_DELAY, val);
+	if (ret)
+		return ret;
+
+	/* enable RX-delay for rgmii-{id,rxid}, and disable it for rgmii and
+	 * rgmii-txid.
+	 */
+	switch (phydev->interface) {
+	case PHY_INTERFACE_MODE_RGMII:
+	case PHY_INTERFACE_MODE_RGMII_TXID:
+		return phy_modify_paged(phydev, 0xd08, RTL8211F_RX_DELAY_REG, RTL8211F_RX_DELAY_EN, 0);
+	case PHY_INTERFACE_MODE_RGMII_ID:
+	case PHY_INTERFACE_MODE_RGMII_RXID:
+		return phy_modify_paged(phydev, 0xd08, RTL8211F_RX_DELAY_REG, RTL8211F_RX_DELAY_EN, RTL8211F_RX_DELAY_EN);
+	/* the rest of the modes imply leaving RX-delay as is. */
+	}
 }
 
 static int rtl8211e_config_init(struct phy_device *phydev)
