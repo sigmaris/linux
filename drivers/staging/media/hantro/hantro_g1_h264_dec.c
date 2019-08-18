@@ -130,28 +130,20 @@ static void set_params(struct hantro_ctx *ctx)
 
 static void set_ref(struct hantro_ctx *ctx)
 {
+	const struct v4l2_ctrl_h264_decode_params *dec_param;
+	const struct v4l2_ctrl_h264_slice_params *slice;
 	struct v4l2_h264_dpb_entry *dpb = ctx->h264_dec.dpb;
 	const u8 *b0_reflist, *b1_reflist, *p_reflist;
 	struct hantro_dev *vpu = ctx->dev;
-	u32 dpb_longterm = 0;
-	u32 dpb_valid = 0;
 	int reg_num;
 	u32 reg;
 	int i;
 
-	/*
-	 * Set up bit maps of valid and long term DPBs.
-	 * NOTE: The bits are reversed, i.e. MSb is DPB 0.
-	 */
-	for (i = 0; i < HANTRO_H264_DPB_SIZE; ++i) {
-		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE)
-			dpb_valid |= BIT(HANTRO_H264_DPB_SIZE - 1 - i);
+	dec_param = ctx->h264_dec.ctrls.decode;
+	slice = ctx->h264_dec.ctrls.slices;
 
-		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
-			dpb_longterm |= BIT(HANTRO_H264_DPB_SIZE - 1 - i);
-	}
-	vdpu_write_relaxed(vpu, dpb_valid << 16, G1_REG_VALID_REF);
-	vdpu_write_relaxed(vpu, dpb_longterm << 16, G1_REG_LT_REF);
+	vdpu_write_relaxed(vpu, ctx->h264_dec.dpb_valid, G1_REG_VALID_REF);
+	vdpu_write_relaxed(vpu, ctx->h264_dec.dpb_longterm, G1_REG_LT_REF);
 
 	/*
 	 * Set up reference frame picture numbers.
@@ -223,10 +215,8 @@ static void set_ref(struct hantro_ctx *ctx)
 
 	/* Set up addresses of DPB buffers. */
 	for (i = 0; i < HANTRO_H264_DPB_SIZE; i++) {
-		struct vb2_buffer *buf =  hantro_h264_get_ref_buf(ctx, i);
-
-		vdpu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(buf, 0),
-				   G1_REG_ADDR_REF(i));
+		dma_addr_t addr = hantro_h264_get_ref_dma_addr(ctx, i);
+		vdpu_write_relaxed(vpu, addr, G1_REG_ADDR_REF(i));
 	}
 }
 
