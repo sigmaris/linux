@@ -434,7 +434,7 @@ static const struct of_device_id of_rkvdec_match[] = {
 MODULE_DEVICE_TABLE(of, of_rkvdec_match);
 
 static const char *rkvdec_clk_names[] = {
-	"aclk", "iface", "cabac", "core"
+	"aclk", "hclk", "cabac", "core"
 };
 
 static int rkvdec_probe(struct platform_device *pdev)
