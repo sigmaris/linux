@@ -38,12 +38,12 @@ static const V4L2_M2M_CODEC_CTRLS(rkvdec_h264_ctrls,
 		V4L2_M2M_H264_DEC_SPS_CTRL,
 		V4L2_M2M_H264_DEC_PPS_CTRL,
 		V4L2_M2M_H264_DEC_SCALING_MATRIX_CTRL,
-		V4L2_M2M_H264_DEC_MODE_CTRL(V4L2_MPEG_VIDEO_H264_SLICE_BASED_DECODING,
-					    V4L2_MPEG_VIDEO_H264_FRAME_BASED_DECODING));
+		V4L2_M2M_H264_DEC_MODE_CTRL(V4L2_MPEG_VIDEO_H264_DECODE_MODE_SLICE_BASED,
+					    V4L2_MPEG_VIDEO_H264_DECODE_MODE_FRAME_BASED));
 
 static const struct v4l2_m2m_codec_coded_fmt_desc rkvdec_coded_fmts[] = {
 	{
-		.fourcc = V4L2_PIX_FMT_H264_SLICE_RAW,
+		.fourcc = V4L2_PIX_FMT_H264_SLICE,
 		.requires_requests = true,
 		.frmsize = &((struct v4l2_frmsize_stepwise){
 			.min_width = 48,

@@ -64,7 +64,6 @@ v4l2_m2m_h264_decode_run_postamble(struct v4l2_m2m_codec_ctx *ctx,
 		.per_request = true,					\
 		.mandatory = true,					\
 		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_SLICE_PARAMS,	\
-		.cfg.dims[0] = V4L2_H264_MAX_SLICES_PER_FRAME,		\
 	}
 
 #define V4L2_M2M_H264_DEC_SPS_CTRL					\
@@ -91,8 +90,8 @@ v4l2_m2m_h264_decode_run_postamble(struct v4l2_m2m_codec_ctx *ctx,
 #define V4L2_M2M_H264_DEC_MODE_CTRL(_unsupported_modes, _default_mode)	\
 	{								\
 		.mandatory = true,					\
-		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_DECODING_MODE,	\
-		.cfg.max = V4L2_MPEG_VIDEO_H264_FRAME_BASED_DECODING,	\
+		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_DECODE_MODE,	\
+		.cfg.max = V4L2_MPEG_VIDEO_H264_DECODE_MODE_FRAME_BASED,	\
 		.cfg.menu_skip_mask = _unsupported_modes,		\
 		.cfg.def = _default_mode,				\
 	}
