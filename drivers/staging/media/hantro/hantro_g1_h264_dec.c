@@ -202,7 +202,6 @@
 #define G1_REG_REFBU_E(v)		((v) ? BIT(31) : 0)
 
 #define G1_REG_APF_THRESHOLD(v)		(((v) << 0) & GENMASK(13, 0))
->>>>>>> b22734fb5e2c... Ymedia: hantro: Refactor G1 H264 code
 
 void hantro_g1_h264_dec_run(struct hantro_ctx *ctx)
 {
