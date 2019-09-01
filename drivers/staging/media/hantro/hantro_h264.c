@@ -228,17 +228,65 @@ static void prepare_table(struct hantro_ctx *ctx)
 {
 	const struct hantro_h264_dec_ctrls *ctrls = &ctx->h264_dec.ctrls;
 	const struct v4l2_ctrl_h264_decode_params *dec_param = ctrls->decode;
+	const struct v4l2_ctrl_h264_slice_params *slices = ctrls->slices;
 	struct hantro_h264_dec_priv_tbl *tbl = ctx->h264_dec.priv.cpu;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->h264_dec.dpb;
+	u32 dpb_longterm = 0;
+	u32 dpb_valid = 0;
 	int i;
 
-	for (i = 0; i < HANTRO_H264_DPB_SIZE; ++i) {
-		tbl->poc[i * 2] = dpb[i].top_field_order_cnt;
-		tbl->poc[i * 2 + 1] = dpb[i].bottom_field_order_cnt;
+	/*
+	 * Set up bit maps of valid and long term DPBs.
+	 * NOTE: The bits are reversed, i.e. MSb is DPB 0.
+	 */
+	if ((slices[0].flags & V4L2_H264_SLICE_FLAG_FIELD_PIC) || (slices[0].flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD)) {
+		for (i = 0; i < HANTRO_H264_DPB_SIZE * 2; ++i) {
+			// check for correct reference use
+			u32 flag = (i & 0x1) ? V4L2_H264_DPB_ENTRY_FLAG_REF_BOTTOM : V4L2_H264_DPB_ENTRY_FLAG_REF_TOP;
+			if (dpb[i / 2].flags & flag)
+				dpb_valid |= BIT(HANTRO_H264_DPB_SIZE * 2 - 1 - i);
+
+			if (dpb[i / 2].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
+				dpb_longterm |= BIT(HANTRO_H264_DPB_SIZE * 2 - 1 - i);
+		}
+
+		ctx->h264_dec.dpb_valid = dpb_valid;
+		ctx->h264_dec.dpb_longterm = dpb_longterm;
+	} else {
+		for (i = 0; i < HANTRO_H264_DPB_SIZE; ++i) {
+			if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE)
+				dpb_valid |= BIT(HANTRO_H264_DPB_SIZE - 1 - i);
+
+			if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
+				dpb_longterm |= BIT(HANTRO_H264_DPB_SIZE - 1 - i);
+		}
+
+		ctx->h264_dec.dpb_valid = dpb_valid << 16;
+		ctx->h264_dec.dpb_longterm = dpb_longterm << 16;
 	}
 
-	tbl->poc[32] = dec_param->top_field_order_cnt;
-	tbl->poc[33] = dec_param->bottom_field_order_cnt;
+	for (i = 0; i < HANTRO_H264_DPB_SIZE; ++i) {
+		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE) {
+			tbl->poc[i * 2] = dpb[i].top_field_order_cnt;
+			tbl->poc[i * 2 + 1] = dpb[i].bottom_field_order_cnt;
+		} else {
+			tbl->poc[i * 2] = 0;
+			tbl->poc[i * 2 + 1] = 0;
+		}
+	}
+
+	if ((slices[0].flags & V4L2_H264_SLICE_FLAG_FIELD_PIC) || !(slices[0].flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD)) {
+		if ((slices[0].flags & V4L2_H264_SLICE_FLAG_FIELD_PIC))
+			tbl->poc[32] = (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD) ?
+					dec_param->bottom_field_order_cnt :
+					dec_param->top_field_order_cnt;
+		else
+			tbl->poc[32] = min(dec_param->top_field_order_cnt, dec_param->bottom_field_order_cnt);
+		tbl->poc[33] = 0;
+	} else {
+		tbl->poc[32] = dec_param->top_field_order_cnt;
+		tbl->poc[33] = dec_param->bottom_field_order_cnt;
+	}
 
 	reorder_scaling_list(ctx);
 }
@@ -251,51 +299,36 @@ struct hantro_h264_reflist_builder {
 	u8 num_valid;
 };
 
-static s32 get_poc(enum v4l2_field field, s32 top_field_order_cnt,
-		   s32 bottom_field_order_cnt)
-{
-	switch (field) {
-	case V4L2_FIELD_TOP:
-		return top_field_order_cnt;
-	case V4L2_FIELD_BOTTOM:
-		return bottom_field_order_cnt;
-	default:
-		break;
-	}
-
-	return min(top_field_order_cnt, bottom_field_order_cnt);
-}
-
 static void
 init_reflist_builder(struct hantro_ctx *ctx,
 		     struct hantro_h264_reflist_builder *b)
 {
 	const struct v4l2_ctrl_h264_decode_params *dec_param;
-	struct vb2_v4l2_buffer *buf = hantro_get_dst_buf(ctx);
+	const struct v4l2_ctrl_h264_slice_params *slices;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->h264_dec.dpb;
-	struct vb2_queue *cap_q = &ctx->fh.m2m_ctx->cap_q_ctx.q;
 	unsigned int i;
 
 	dec_param = ctx->h264_dec.ctrls.decode;
+	slices = ctx->h264_dec.ctrls.slices;
 
 	memset(b, 0, sizeof(*b));
 	b->dpb = dpb;
-	b->curpoc = get_poc(buf->field, dec_param->top_field_order_cnt,
-			    dec_param->bottom_field_order_cnt);
+	b->curpoc = (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD) ?
+		    dec_param->bottom_field_order_cnt :
+		    dec_param->top_field_order_cnt;
 
 	for (i = 0; i < ARRAY_SIZE(ctx->h264_dec.dpb); i++) {
-		int buf_idx;
-
-		if (!(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE))
+		u32 ref_flag = dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_REF_FRAME;
+		if (!ref_flag)
 			continue;
 
-		buf_idx = vb2_find_timestamp(cap_q, dpb[i].reference_ts, 0);
-		if (buf_idx < 0)
-			continue;
+		if (ref_flag == V4L2_H264_DPB_ENTRY_FLAG_REF_FRAME)
+			b->pocs[i] = min(dpb[i].bottom_field_order_cnt, dpb[i].top_field_order_cnt);
+		else if (ref_flag == V4L2_H264_DPB_ENTRY_FLAG_REF_BOTTOM)
+			b->pocs[i] = dpb[i].bottom_field_order_cnt;
+		else if (ref_flag == V4L2_H264_DPB_ENTRY_FLAG_REF_TOP)
+			b->pocs[i] = dpb[i].top_field_order_cnt;
 
-		buf = to_vb2_v4l2_buffer(vb2_get_buffer(cap_q, buf_idx));
-		b->pocs[i] = get_poc(buf->field, dpb[i].top_field_order_cnt,
-				     dpb[i].bottom_field_order_cnt);
 		b->unordered_reflist[b->num_valid] = i;
 		b->num_valid++;
 	}
@@ -448,8 +481,7 @@ build_b_ref_lists(const struct hantro_h264_reflist_builder *builder,
 static bool dpb_entry_match(const struct v4l2_h264_dpb_entry *a,
 			    const struct v4l2_h264_dpb_entry *b)
 {
-	return a->top_field_order_cnt == b->top_field_order_cnt &&
-	       a->bottom_field_order_cnt == b->bottom_field_order_cnt;
+	return a->reference_ts == b->reference_ts;
 }
 
 static void update_dpb(struct hantro_ctx *ctx)
@@ -463,13 +495,13 @@ static void update_dpb(struct hantro_ctx *ctx)
 
 	/* Disable all entries by default. */
 	for (i = 0; i < ARRAY_SIZE(ctx->h264_dec.dpb); i++)
-		ctx->h264_dec.dpb[i].flags &= ~V4L2_H264_DPB_ENTRY_FLAG_ACTIVE;
+		ctx->h264_dec.dpb[i].flags = 0;
 
 	/* Try to match new DPB entries with existing ones by their POCs. */
 	for (i = 0; i < ARRAY_SIZE(dec_param->dpb); i++) {
 		const struct v4l2_h264_dpb_entry *ndpb = &dec_param->dpb[i];
 
-		if (!(ndpb->flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE))
+		if (!(ndpb->flags & V4L2_H264_DPB_ENTRY_FLAG_VALID))
 			continue;
 
 		/*
@@ -480,8 +512,7 @@ static void update_dpb(struct hantro_ctx *ctx)
 			struct v4l2_h264_dpb_entry *cdpb;
 
 			cdpb = &ctx->h264_dec.dpb[j];
-			if (cdpb->flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE ||
-			    !dpb_entry_match(cdpb, ndpb))
+			if (!dpb_entry_match(cdpb, ndpb))
 				continue;
 
 			*cdpb = *ndpb;
@@ -539,6 +570,25 @@ struct vb2_buffer *hantro_h264_get_ref_buf(struct hantro_ctx *ctx,
 	}
 
 	return buf;
+}
+
+dma_addr_t hantro_h264_get_ref_dma_addr(struct hantro_ctx *ctx,
+					unsigned int dpb_idx)
+{
+	struct v4l2_h264_dpb_entry *dpb = ctx->h264_dec.dpb;
+	const struct v4l2_ctrl_h264_decode_params *dec_param = ctx->h264_dec.ctrls.decode;
+	const struct v4l2_ctrl_h264_slice_params *slices = ctx->h264_dec.ctrls.slices;
+
+	struct vb2_buffer *buf = hantro_h264_get_ref_buf(ctx, dpb_idx);
+	s32 cur_poc = slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD ?
+		      dec_param->bottom_field_order_cnt :
+		      dec_param->top_field_order_cnt;
+	u32 flags = dpb[dpb_idx].flags & V4L2_H264_DPB_ENTRY_FLAG_FIELD_PICTURE ? 0x2 : 0;
+	flags |= abs(dpb[dpb_idx].top_field_order_cnt - cur_poc) <
+		 abs(dpb[dpb_idx].bottom_field_order_cnt - cur_poc) ?
+		 0x1 : 0;
+
+	return vb2_dma_contig_plane_dma_addr(buf, 0) | flags;
 }
 
 int hantro_h264_dec_prepare_run(struct hantro_ctx *ctx)
