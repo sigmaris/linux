@@ -1,0 +1,42 @@
+trigger:
+  batch: false
+  branches:
+    include:
+      - ci-*
+  tags:
+    include:
+      - '*-ci'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+container: sigmaris/aarch64-linux-crossbuilder:latest
+
+steps:
+- script: |
+    export ARCH=arm64
+    export CROSS_COMPILE="aarch64-linux-gnu-"
+    echo "-g$(git rev-parse --short HEAD)-sigmaris" > .scmversion
+    make rockchip_linux_defconfig
+    export KDEB_PKGVERSION="$(make kernelrelease)"
+    make -j$(getconf _NPROCESSORS_ONLN) bindeb-pkg
+    mv ../linux-${KDEB_PKGVERSION}_${KDEB_PKGVERSION}_*.{buildinfo,changes} '$(Build.ArtifactStagingDirectory)'
+    mv ../linux-{headers,image}-${KDEB_PKGVERSION}_${KDEB_PKGVERSION}_*.deb '$(Build.ArtifactStagingDirectory)'
+    mv ../linux-image-${KDEB_PKGVERSION}-dbg_${KDEB_PKGVERSION}_*.deb '$(Build.ArtifactStagingDirectory)'
+    mv ../linux-libc-dev_${KDEB_PKGVERSION}_*.deb '$(Build.ArtifactStagingDirectory)'
+  displayName: Build linux .deb packages
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: linuxdebs
+- task: GithubRelease@0
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), endsWith(variables['Build.SourceBranch'], '-ci'))
+  displayName: 'Create Github release with assets'
+  inputs:
+    gitHubConnection: sigmaris_token
+    repositoryName: sigmaris/linux
+    action: 'create'
+    target: '$(Build.SourceVersion)'
+    tagSource: 'auto'
+    title: 'Kernel for RockPro64 built from $(Build.SourceBranchName)'
+    assets: '$(Build.ArtifactStagingDirectory)/*'
