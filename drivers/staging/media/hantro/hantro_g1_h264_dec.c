@@ -259,7 +259,7 @@ void hantro_g1_h264_dec_run(struct hantro_ctx *ctx)
 	      G1_REG_PIC_FIXED_QUANT(0) |
 	      G1_REG_WRITE_MVS_E(sps->profile_idc > 66 && dec_param->nal_ref_idc) |
 	      G1_REG_SEQ_MBAFF_E(sps->flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD) |
-	      G1_REG_PICORD_COUNT_E(1) |
+	      G1_REG_PICORD_COUNT_E(sps->profile_idc > 66) |
 	      G1_REG_DEC_AXI_WR_ID(0);
 	vdpu_write_relaxed(vpu, reg, G1_SWREG(3));
 
