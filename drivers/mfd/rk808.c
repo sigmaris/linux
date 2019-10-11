@@ -503,7 +503,7 @@ static void rk808_device_shutdown(void)
 
 	ret = regmap_update_bits(rk808->regmap,
 				 RK808_DEVCTRL_REG,
-				 DEV_OFF_RST, DEV_OFF_RST);
+				 DEV_OFF | DEV_OFF_RST, DEV_OFF | DEV_OFF_RST);
 	if (ret)
 		dev_err(&rk808_i2c_client->dev, "Failed to shutdown device!\n");
 }
