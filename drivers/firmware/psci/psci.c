@@ -259,14 +259,17 @@ static void psci_sys_reset(enum reboot_mode reboot_mode, const char *cmd)
 		 * reset_type[30:0] = 0 (SYSTEM_WARM_RESET)
 		 * cookie = 0 (ignored by the implementation)
 		 */
+		pr_info("psci_sys_reset(SYSTEM_RESET2)\n");
 		invoke_psci_fn(PSCI_FN_NATIVE(1_1, SYSTEM_RESET2), 0, 0, 0);
 	} else {
+		pr_info("psci_sys_reset(SYSTEM_RESET)\n");
 		invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
 	}
 }
 
 static void psci_sys_poweroff(void)
 {
+	pr_info("psci_sys_poweroff()\n");
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_OFF, 0, 0, 0);
 }
 
