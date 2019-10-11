@@ -496,6 +496,8 @@ static void rk808_device_shutdown(void)
 	int ret;
 	struct rk808 *rk808 = i2c_get_clientdata(rk808_i2c_client);
 
+	dev_warn(&rk808_i2c_client->dev, "rk808_device_shutdown(%p)\n", rk808);
+
 	if (!rk808)
 		return;
 
