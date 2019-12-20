@@ -77,6 +77,7 @@ struct rockchip_hdmi {
 };
 
 #define to_rockchip_hdmi(x)	container_of(x, struct rockchip_hdmi, x)
+#define to_crtc_state(x)	container_of(x, struct drm_crtc_state, x)
 
 static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 	{
@@ -322,6 +323,11 @@ dw_hdmi_rockchip_bridge_mode_set(struct drm_bridge *bridge,
 				 const struct drm_display_mode *adjusted_mode)
 {
 	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(bridge);
+	struct drm_crtc_state *crtc_state = to_crtc_state(adjusted_mode);
+	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
+
+	if (hdmi->phy)
+		phy_set_bus_width(hdmi->phy, s->bus_width);
 
 	clk_set_rate(hdmi->vpll_clk, adjusted_mode->clock * 1000);
 }
@@ -360,7 +366,18 @@ static void dw_hdmi_rockchip_bridge_enable(struct drm_bridge *bridge)
 static bool is_rgb(u32 format)
 {
 	switch (format) {
+	case MEDIA_BUS_FMT_RGB101010_1X30:
 	case MEDIA_BUS_FMT_RGB888_1X24:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool is_10bit(u32 format)
+{
+	switch (format) {
+	case MEDIA_BUS_FMT_RGB101010_1X30:
 		return true;
 	default:
 		return false;
@@ -374,9 +391,24 @@ dw_hdmi_rockchip_bridge_atomic_check(struct drm_bridge *bridge,
 				     struct drm_connector_state *conn_state)
 {
 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
+	struct drm_atomic_state *state = bridge_state->base.state;
+	struct drm_crtc_state *old_crtc_state;
+	struct rockchip_crtc_state *old_state;
+	u32 format = bridge_state->output_bus_cfg.format;
 
 	s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	s->output_type = DRM_MODE_CONNECTOR_HDMIA;
+	s->output_bpc = 10;
+	s->bus_format = format;
+	s->bus_width = is_10bit(format) ? 10 : 8;
+
+	old_crtc_state = drm_atomic_get_old_crtc_state(state, conn_state->crtc);
+	if (old_crtc_state && !crtc_state->mode_changed) {
+		old_state = to_rockchip_crtc_state(old_crtc_state);
+		if (s->bus_format != old_state->bus_format ||
+		    s->bus_width != old_state->bus_width)
+			crtc_state->mode_changed = true;
+	}
 
 	return 0;
 }
@@ -388,9 +420,18 @@ static u32 *dw_hdmi_rockchip_get_input_bus_fmts(struct drm_bridge *bridge,
 					u32 output_fmt,
 					unsigned int *num_input_fmts)
 {
+	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(bridge);
+	struct drm_encoder *encoder = bridge->encoder;
 	u32 *input_fmt;
+	bool has_10bit = true;
 
 	*num_input_fmts = 0;
+
+	if (drm_of_encoder_active_endpoint_id(hdmi->dev->of_node, encoder))
+		has_10bit = false;
+
+	if (!has_10bit && is_10bit(output_fmt))
+		return NULL;
 
 	if (!is_rgb(output_fmt))
 		return NULL;
