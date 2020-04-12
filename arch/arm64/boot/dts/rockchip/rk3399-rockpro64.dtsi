@@ -837,6 +837,7 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
+		m25p,fast-read;
 	};
 };
 
