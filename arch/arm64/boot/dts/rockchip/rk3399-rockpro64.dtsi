@@ -96,7 +96,17 @@
 	sound {
 		compatible = "audio-graph-card";
 		label = "Analog";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_det_gpio>;
 		dais = <&i2s1_p0>;
+		widgets =
+			"Microphone", "Mic Jack",
+			"Headphone", "Headphones";
+		routing =
+			"MIC1", "Mic Jack",
+			"Headphones", "HPOL",
+			"Headphones", "HPOR";
+		hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 	};
 
 	sound-dit {
@@ -699,6 +709,12 @@
 	buttons {
 		pwrbtn: pwrbtn {
 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	es8316 {
+		hp_det_gpio: hp-det-gpio {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
