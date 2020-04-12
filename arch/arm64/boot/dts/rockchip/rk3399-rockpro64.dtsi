@@ -73,8 +73,18 @@
 
 	sound {
 		compatible = "audio-graph-card";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_det_gpio>;
 		label = "rockchip,rk3399";
 		dais = <&i2s1_p0>;
+		widgets =
+			"Microphone", "Mic Jack",
+			"Headphone", "Headphones";
+		routing =
+			"MIC1", "Mic Jack",
+			"Headphones", "HPOL",
+			"Headphones", "HPOR";
+		hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 	};
 
 	vcc12v_dcin: vcc12v-dcin {
@@ -614,6 +624,12 @@
 	buttons {
 		pwrbtn: pwrbtn {
 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	es8316 {
+		hp_det_gpio: hp-det-gpio {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
