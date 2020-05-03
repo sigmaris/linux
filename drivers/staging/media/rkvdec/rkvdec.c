@@ -1096,10 +1096,12 @@ static int rkvdec_probe(struct platform_device *pdev)
 		return ret;
 
 	/*
-	 * Bump ACLK to max. possible freq. (500 MHz) to improve performance
-	 * When 4k video playback.
+	 * Don't bump ACLK to max. possible freq. (500 MHz) to improve performance,
+	 * since it will lead to non-recoverable decoder lockups in case of decoding
+	 * errors, instead put it to 400 MHz, which seems to have no drawbacks
+	 * in decoding performance and doesn't result in those hangs.
 	 */
-	clk_set_rate(rkvdec->clocks[0].clk, 500 * 1000 * 1000);
+	clk_set_rate(rkvdec->clocks[0].clk, 400 * 1000 * 1000);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	rkvdec->regs = devm_ioremap_resource(&pdev->dev, res);
