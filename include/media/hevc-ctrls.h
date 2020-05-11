@@ -118,7 +118,8 @@ struct v4l2_ctrl_hevc_pps {
 	__s8	pps_tc_offset_div2;
 	__u8	log2_parallel_merge_level_minus2;
 
-	__u8	padding[4];
+	__u8	pic_parameter_set_id;
+	__u8	padding[3];
 	__u64	flags;
 };
 

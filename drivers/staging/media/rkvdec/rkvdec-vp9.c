@@ -1510,8 +1510,6 @@ static int rkvdec_vp9_start(struct rkvdec_ctx *ctx)
 	if (!vp9_ctx)
 		return -ENOMEM;
 
-	ctx->priv = vp9_ctx;
-
 	priv_tbl = dma_alloc_coherent(rkvdec->dev, sizeof(*priv_tbl),
 				      &vp9_ctx->priv_tbl.dma, GFP_KERNEL);
 	if (!priv_tbl) {
@@ -1534,6 +1532,7 @@ static int rkvdec_vp9_start(struct rkvdec_ctx *ctx)
 	vp9_ctx->count_tbl.cpu = count_tbl;
 	memset(count_tbl, 0, sizeof(*count_tbl));
 
+	ctx->priv = vp9_ctx;
 	return 0;
 
 err_free_priv_tbl:

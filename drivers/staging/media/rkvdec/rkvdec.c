@@ -74,8 +74,46 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
 	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
 };
 
-static const u32 rkvdec_h264_vp9_decoded_fmts[] = {
-	V4L2_PIX_FMT_NV12,
+static const struct rkvdec_ctrl_desc rkvdec_h265_ctrl_descs[] = {
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SLICE_PARAMS,
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SPS,
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_PPS,
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SCALING_MATRIX,
+	},
+	{
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_DECODE_MODE,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+		.cfg.def = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+	},
+	{
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_START_CODE,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+		.cfg.def = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+	},
+};
+
+static const struct rkvdec_ctrls rkvdec_h265_ctrls = {
+	.ctrls = rkvdec_h265_ctrl_descs,
+	.num_ctrls = ARRAY_SIZE(rkvdec_h265_ctrl_descs),
 };
 
 static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
@@ -113,6 +151,10 @@ static const struct rkvdec_ctrls rkvdec_vp9_ctrls = {
 	.num_ctrls = ARRAY_SIZE(rkvdec_vp9_ctrl_descs),
 };
 
+static const u32 rkvdec_decoded_fmts[] = {
+	V4L2_PIX_FMT_NV12,
+};
+
 static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_H264_SLICE,
@@ -126,8 +168,23 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
 		},
 		.ctrls = &rkvdec_h264_ctrls,
 		.ops = &rkvdec_h264_fmt_ops,
-		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_vp9_decoded_fmts),
-		.decoded_fmts = rkvdec_h264_vp9_decoded_fmts,
+		.num_decoded_fmts = ARRAY_SIZE(rkvdec_decoded_fmts),
+		.decoded_fmts = rkvdec_decoded_fmts,
+	},
+	{
+		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
+		.frmsize = {
+			.min_width = 64,
+			.max_width = 4096,
+			.step_width = 64,
+			.min_height = 64,
+			.max_height = 2304,
+			.step_height = 64,
+		},
+		.ctrls = &rkvdec_h265_ctrls,
+		.ops = &rkvdec_h265_fmt_ops,
+		.num_decoded_fmts = ARRAY_SIZE(rkvdec_decoded_fmts),
+		.decoded_fmts = rkvdec_decoded_fmts,
 	},
 	{
 		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
@@ -141,8 +198,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
 		},
 		.ctrls = &rkvdec_vp9_ctrls,
 		.ops = &rkvdec_vp9_fmt_ops,
-		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_vp9_decoded_fmts),
-		.decoded_fmts = rkvdec_h264_vp9_decoded_fmts,
+		.num_decoded_fmts = ARRAY_SIZE(rkvdec_decoded_fmts),
+		.decoded_fmts = rkvdec_decoded_fmts,
 	}
 };
 
@@ -196,7 +253,7 @@ static void rkvdec_reset_decoded_fmt(struct rkvdec_ctx *ctx)
 			    ctx->coded_fmt_desc->decoded_fmts[0],
 			    ctx->coded_fmt.fmt.pix_mp.width,
 			    ctx->coded_fmt.fmt.pix_mp.height);
-	f->fmt.pix_mp.plane_fmt[0].sizeimage += 128 *
+	f->fmt.pix_mp.plane_fmt[0].sizeimage += 256 *
 		DIV_ROUND_UP(f->fmt.pix_mp.width, 16) *
 		DIV_ROUND_UP(f->fmt.pix_mp.height, 16);
 }
@@ -693,6 +750,16 @@ static void rkvdec_job_finish(struct rkvdec_ctx *ctx,
 			      enum vb2_buffer_state result)
 {
 	struct rkvdec_dev *rkvdec = ctx->dev;
+	int i;
+	u32 val;
+
+	dev_info(rkvdec->dev, "rkvdec_job_finish: result=%d\n", result);
+
+	for (i = 0; i < 68; i++) {
+		val = readl(rkvdec->regs + (i * 0x4));
+		if (val)
+			dev_info(rkvdec->dev, "regs[%d]=%08x\n", i, val);
+	}
 
 	pm_runtime_mark_last_busy(rkvdec->dev);
 	pm_runtime_put_autosuspend(rkvdec->dev);
@@ -992,10 +1059,18 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
 	u32 status;
 
 	status = readl(rkvdec->regs + RKVDEC_REG_INTERRUPT);
+	dev_info(rkvdec->dev, "status=%x\n", status);
 	state = (status & RKVDEC_RDY_STA) ?
 		VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
 
-	writel(0, rkvdec->regs + RKVDEC_REG_INTERRUPT);
+//		err_mask = RKVDEC_INT_BUF_EMPTY
+//		    | RKVDEC_INT_BUS_ERROR
+//		    | RKVDEC_INT_COLMV_REF_ERROR
+//		    | RKVDEC_INT_STRM_ERROR | RKVDEC_INT_TIMEOUT;
+
+	writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_TIMEOUT_E |
+	       RKVDEC_FORCE_SOFTRESET_VALID,
+	       rkvdec->regs + RKVDEC_REG_INTERRUPT);
 	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
 		struct rkvdec_ctx *ctx;
 
@@ -1016,7 +1091,9 @@ static void rkvdec_watchdog_func(struct work_struct *work)
 	ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
 	if (ctx) {
 		dev_err(rkvdec->dev, "Frame processing timed out!\n");
-		writel(RKVDEC_IRQ_DIS, rkvdec->regs + RKVDEC_REG_INTERRUPT);
+		writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_IRQ_DIS |
+		       RKVDEC_TIMEOUT_E | RKVDEC_FORCE_SOFTRESET_VALID,
+		       rkvdec->regs + RKVDEC_REG_INTERRUPT);
 		writel(0, rkvdec->regs + RKVDEC_REG_SYSCTRL);
 		rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
 	}

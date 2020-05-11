@@ -987,7 +987,7 @@ static void config_registers(struct rkvdec_ctx *ctx,
 			refer_addr |= RKVDEC_TOPFIELD_USED_REF;
 
 		writel_relaxed(dpb[i].top_field_order_cnt,
-			       rkvdec->regs +  poc_reg_tbl_top_field[i]);
+			       rkvdec->regs + poc_reg_tbl_top_field[i]);
 		writel_relaxed(dpb[i].bottom_field_order_cnt,
 			       rkvdec->regs + poc_reg_tbl_bottom_field[i]);
 
