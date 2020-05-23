@@ -87,6 +87,62 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
 	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
 };
 
+static const struct rkvdec_ctrl_desc rkvdec_hevc_ctrl_descs[] = {
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SLICE_PARAMS,
+		// HACK: match ffmpeg v4l2 request api hwaccel size,
+		//       we should support variable length up to 600 slices
+		.cfg.dims = { 16 },
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SPS,
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_PPS,
+	},
+	{
+		.per_request = true,
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SCALING_MATRIX,
+	},
+	{
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_DECODE_MODE,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+		.cfg.def = V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_FRAME_BASED,
+	},
+	{
+		.mandatory = true,
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_START_CODE,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+		.cfg.def = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_START_CODE_ANNEX_B,
+	},
+	{
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_PROFILE,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10,
+		.cfg.def = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+	},
+	{
+		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_LEVEL,
+		.cfg.min = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
+		.cfg.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1,
+	},
+};
+
+static const struct rkvdec_ctrls rkvdec_hevc_ctrls = {
+	.ctrls = rkvdec_hevc_ctrl_descs,
+	.num_ctrls = ARRAY_SIZE(rkvdec_hevc_ctrl_descs),
+};
+
 static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
 	{
 		.per_request = true,
@@ -129,6 +185,11 @@ static const u32 rkvdec_h264_decoded_fmts[] = {
 	V4L2_PIX_FMT_NV20,
 };
 
+static const u32 rkvdec_hevc_decoded_fmts[] = {
+	V4L2_PIX_FMT_NV12,
+	V4L2_PIX_FMT_NV15,
+};
+
 static const u32 rkvdec_vp9_decoded_fmts[] = {
 	V4L2_PIX_FMT_NV12,
 };
@@ -148,6 +209,21 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
 		.ops = &rkvdec_h264_fmt_ops,
 		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_decoded_fmts),
 		.decoded_fmts = rkvdec_h264_decoded_fmts,
+	},
+	{
+		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
+		.frmsize = {
+			.min_width = 64,
+			.max_width = 4096,
+			.step_width = 64,
+			.min_height = 64,
+			.max_height = 2304,
+			.step_height = 16,
+		},
+		.ctrls = &rkvdec_hevc_ctrls,
+		.ops = &rkvdec_hevc_fmt_ops,
+		.num_decoded_fmts = ARRAY_SIZE(rkvdec_hevc_decoded_fmts),
+		.decoded_fmts = rkvdec_hevc_decoded_fmts,
 	},
 	{
 		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
