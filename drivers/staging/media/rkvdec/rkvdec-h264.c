@@ -739,7 +739,7 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 	u8 *reflists[3] = { h264_ctx->reflists.p, h264_ctx->reflists.b0, h264_ctx->reflists.b1 };
 
 	u32 *hw_rps = priv_tbl->rps;
-	u32 i, j;
+	u32 i, j, k;
 	u16 *p = (u16 *)hw_rps;
 
 	memset(hw_rps, 0, sizeof(priv_tbl->rps));
@@ -766,18 +766,71 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 		p[i] = dpb[i].frame_num - max_frame_num;
 	}
 
+	if (!(sl_params->flags & V4L2_H264_SLICE_FLAG_FIELD_PIC)) {
+		for (j = 0; j < RKVDEC_NUM_REFLIST; j++) {
+			for (i = 0; i < h264_ctx->reflists.num_valid; i++) {
+				u8 dpb_valid = 0;
+				u8 idx = reflists[j][i];
+
+				if (idx >= ARRAY_SIZE(dec_params->dpb))
+					continue;
+				dpb_valid = !!(dpb[idx].flags &
+					       V4L2_H264_DPB_ENTRY_FLAG_ACTIVE);
+
+				set_ps_field(hw_rps, DPB_INFO(i, j),
+					     idx | dpb_valid << 4);
+			}
+		}
+		return;
+	}
+
 	for (j = 0; j < RKVDEC_NUM_REFLIST; j++) {
-		for (i = 0; i < h264_ctx->reflists.num_valid; i++) {
-			u8 dpb_valid = 0;
-			u8 idx = reflists[j][i];
+		u8 a_parity = (sl_params->flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
+			? V4L2_H264_DPB_ENTRY_FLAG_BOTTOM_REF
+			: V4L2_H264_DPB_ENTRY_FLAG_TOP_REF;
+		u8 b_parity = (sl_params->flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
+			? V4L2_H264_DPB_ENTRY_FLAG_TOP_REF
+			: V4L2_H264_DPB_ENTRY_FLAG_BOTTOM_REF;
+		u8 a_flags = a_parity | V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM;
+		u8 b_flags = b_parity | V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM;
+		i = 0;
 
-			if (idx >= ARRAY_SIZE(dec_params->dpb))
-				continue;
-			dpb_valid = !!(dpb[idx].flags &
-				       V4L2_H264_DPB_ENTRY_FLAG_ACTIVE);
+		for (k = 0; k < 2; k++) {
+			u8 a = 0;
+			u8 b = 0;
+			a_parity |= k ? V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM : 0;
+			b_parity |= k ? V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM : 0;
 
-			set_ps_field(hw_rps, DPB_INFO(i, j),
-				     idx | dpb_valid << 4);
+		while (a < h264_ctx->reflists.num_valid || b < h264_ctx->reflists.num_valid) {
+			for (; a < h264_ctx->reflists.num_valid; a++) {
+				u8 idx = reflists[j][a];
+				if (idx >= ARRAY_SIZE(dec_params->dpb))
+					continue;
+				if ((dpb[idx].flags & a_flags) == a_parity) {
+					set_ps_field(hw_rps, DPB_INFO(i, j),
+					             idx | (1 << 4));
+					set_ps_field(hw_rps, BOTTOM_FLAG(i, j),
+						!!(a_flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD));
+					i++;
+					a++;
+					break;
+				}
+			}
+			for (; b < h264_ctx->reflists.num_valid; b++) {
+				u8 idx = reflists[j][b];
+				if (idx >= ARRAY_SIZE(dec_params->dpb))
+					continue;
+				if ((dpb[idx].flags & b_flags) == b_parity) {
+					set_ps_field(hw_rps, DPB_INFO(i, j),
+					             idx | (1 << 4));
+					set_ps_field(hw_rps, BOTTOM_FLAG(i, j),
+						!!(b_flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD));
+					i++;
+					b++;
+					break;
+				}
+			}
+		}
 		}
 	}
 }
@@ -970,10 +1023,6 @@ static void config_registers(struct rkvdec_ctx *ctx,
 				       rkvdec->regs + RKVDEC_REG_H264_BASE_REFER15);
 	}
 
-	/*
-	 * Since support frame mode only
-	 * top_field_order_cnt is the same as bottom_field_order_cnt
-	 */
 	reg = RKVDEC_CUR_POC(dec_params->top_field_order_cnt);
 	writel_relaxed(reg, rkvdec->regs + RKVDEC_REG_CUR_POC0);
 
