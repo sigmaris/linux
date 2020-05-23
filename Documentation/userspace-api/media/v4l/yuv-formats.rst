@@ -61,4 +61,6 @@ to brightness information.
     pixfmt-nv16
     pixfmt-nv16m
     pixfmt-nv24
+    pixfmt-nv15
+    pixfmt-nv20
     pixfmt-m420
