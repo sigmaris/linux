@@ -790,6 +790,8 @@ static void rkvdec_job_finish(struct rkvdec_ctx *ctx,
 
 	pm_runtime_mark_last_busy(rkvdec->dev);
 	pm_runtime_put_autosuspend(rkvdec->dev);
+	if (result == VB2_BUF_STATE_ERROR)
+		rkvdec->soft_reset = true;
 	rkvdec_job_finish_no_pm(ctx, result);
 }
 
@@ -827,6 +829,11 @@ static void rkvdec_device_run(void *priv)
 
 	if (WARN_ON(!desc))
 		return;
+
+	if (rkvdec->soft_reset) {
+		pm_runtime_suspend(rkvdec->dev);
+		rkvdec->soft_reset = false;
+	}
 
 	ret = pm_runtime_get_sync(rkvdec->dev);
 	if (ret < 0) {
@@ -1111,7 +1118,7 @@ static void rkvdec_watchdog_func(struct work_struct *work)
 	ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
 	if (ctx) {
 		dev_err(rkvdec->dev, "Frame processing timed out!\n");
-		writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_IRQ_DIS,
+		writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_IRQ_DIS | RKVDEC_SOFTRST_EN_P,
 		       rkvdec->regs + RKVDEC_REG_INTERRUPT);
 		writel(0, rkvdec->regs + RKVDEC_REG_SYSCTRL);
 		rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
