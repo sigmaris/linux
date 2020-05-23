@@ -736,12 +736,16 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 	const struct v4l2_ctrl_h264_sps *sps = run->sps;
 	struct rkvdec_h264_priv_tbl *priv_tbl = h264_ctx->priv_tbl.cpu;
 	u32 max_frame_num = 1 << (sps->log2_max_frame_num_minus4 + 4);
+	u8 *reflists[3] = { h264_ctx->reflists.p, h264_ctx->reflists.b0, h264_ctx->reflists.b1 };
 
 	u32 *hw_rps = priv_tbl->rps;
 	u32 i, j;
 	u16 *p = (u16 *)hw_rps;
 
 	memset(hw_rps, 0, sizeof(priv_tbl->rps));
+
+	if (!h264_ctx->reflists.num_valid)
+		return;
 
 	/*
 	 * Assign an invalid pic_num if DPB entry at that position is inactive.
@@ -765,19 +769,7 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 	for (j = 0; j < RKVDEC_NUM_REFLIST; j++) {
 		for (i = 0; i < h264_ctx->reflists.num_valid; i++) {
 			u8 dpb_valid = 0;
-			u8 idx = 0;
-
-			switch (j) {
-			case 0:
-				idx = h264_ctx->reflists.p[i];
-				break;
-			case 1:
-				idx = h264_ctx->reflists.b0[i];
-				break;
-			case 2:
-				idx = h264_ctx->reflists.b1[i];
-				break;
-			}
+			u8 idx = reflists[j][i];
 
 			if (idx >= ARRAY_SIZE(dec_params->dpb))
 				continue;
