@@ -13,7 +13,7 @@
 #include "hantro_g1_regs.h"
 #include "hantro_h1_regs.h"
 
-#define RK3288_ACLK_MAX_FREQ (400 * 1000 * 1000)
+#define RK3288_ACLK_MAX_FREQ (600 * 1000 * 1000)
 
 /*
  * Supported formats.
