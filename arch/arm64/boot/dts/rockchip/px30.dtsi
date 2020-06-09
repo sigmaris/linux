@@ -717,6 +717,7 @@
 			clocks = <&cru ACLK_DMAC>;
 			clock-names = "apb_pclk";
 			#dma-cells = <1>;
+			arm,pl330-periph-burst;
 		};
 	};
 
