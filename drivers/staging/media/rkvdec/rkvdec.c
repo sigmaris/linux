@@ -38,6 +38,16 @@ static void rkvdec_fill_decoded_pixfmt(struct rkvdec_ctx *ctx,
 	pix_mp->field = V4L2_FIELD_NONE;
 }
 
+static u32 rkvdec_valid_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
+{
+	const struct rkvdec_coded_fmt_desc *coded_desc = ctx->coded_fmt_desc;
+
+	if (coded_desc->ops->valid_fmt)
+		return coded_desc->ops->valid_fmt(ctx, ctrl);
+
+	return ctx->valid_fmt;
+}
+
 static int rkvdec_try_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct rkvdec_ctx *ctx = container_of(ctrl->handler, struct rkvdec_ctx, ctrl_hdl);
@@ -60,6 +70,10 @@ static int rkvdec_try_ctrl(struct v4l2_ctrl *ctrl)
 			/* Only 8-bit is supported */
 			return -EINVAL;
 
+		if (ctx->valid_fmt && ctx->valid_fmt != rkvdec_valid_fmt(ctx, ctrl))
+			/* Only current valid format */
+			return -EINVAL;
+
 		width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
 		height = (sps->pic_height_in_map_units_minus1 + 1) * 16;
 
@@ -70,8 +84,27 @@ static int rkvdec_try_ctrl(struct v4l2_ctrl *ctrl)
 	return 0;
 }
 
+static int rkvdec_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct rkvdec_ctx *ctx = container_of(ctrl->handler, struct rkvdec_ctx, ctrl_hdl);
+
+	if (ctrl->id == V4L2_CID_MPEG_VIDEO_H264_SPS && !ctx->valid_fmt) {
+		ctx->valid_fmt = rkvdec_valid_fmt(ctx, ctrl);
+		if (ctx->valid_fmt) {
+			struct v4l2_pix_format_mplane *pix_mp;
+
+			pix_mp = &ctx->decoded_fmt.fmt.pix_mp;
+			pix_mp->pixelformat = ctx->valid_fmt;
+			rkvdec_fill_decoded_pixfmt(ctx, pix_mp);
+		}
+	}
+
+	return 0;
+}
+
 static const struct v4l2_ctrl_ops rkvdec_ctrl_ops = {
 	.try_ctrl = rkvdec_try_ctrl,
+	.s_ctrl = rkvdec_s_ctrl,
 };
 
 static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
@@ -176,6 +209,7 @@ static void rkvdec_reset_decoded_fmt(struct rkvdec_ctx *ctx)
 {
 	struct v4l2_format *f = &ctx->decoded_fmt;
 
+	ctx->valid_fmt = 0;
 	rkvdec_reset_fmt(ctx, f, ctx->coded_fmt_desc->decoded_fmts[0]);
 	f->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	f->fmt.pix_mp.width = ctx->coded_fmt.fmt.pix_mp.width;
@@ -231,13 +265,17 @@ static int rkvdec_try_capture_fmt(struct file *file, void *priv,
 	if (WARN_ON(!coded_desc))
 		return -EINVAL;
 
-	for (i = 0; i < coded_desc->num_decoded_fmts; i++) {
-		if (coded_desc->decoded_fmts[i] == pix_mp->pixelformat)
-			break;
-	}
+	if (ctx->valid_fmt) {
+		pix_mp->pixelformat = ctx->valid_fmt;
+	} else {
+		for (i = 0; i < coded_desc->num_decoded_fmts; i++) {
+			if (coded_desc->decoded_fmts[i] == pix_mp->pixelformat)
+				break;
+		}
 
-	if (i == coded_desc->num_decoded_fmts)
-		pix_mp->pixelformat = coded_desc->decoded_fmts[0];
+		if (i == coded_desc->num_decoded_fmts)
+			pix_mp->pixelformat = coded_desc->decoded_fmts[0];
+	}
 
 	/* Always apply the frmsize constraint of the coded end. */
 	pix_mp->width = max(pix_mp->width, ctx->coded_fmt.fmt.pix_mp.width);
@@ -312,6 +350,7 @@ static int rkvdec_s_capture_fmt(struct file *file, void *priv,
 		return ret;
 
 	ctx->decoded_fmt = *f;
+	ctx->valid_fmt = f->fmt.pix_mp.pixelformat;
 	return 0;
 }
 
@@ -400,6 +439,14 @@ static int rkvdec_enum_capture_fmt(struct file *file, void *priv,
 
 	if (WARN_ON(!ctx->coded_fmt_desc))
 		return -EINVAL;
+
+	if (ctx->valid_fmt) {
+		if (f->index)
+			return -EINVAL;
+
+		f->pixelformat = ctx->valid_fmt;
+		return 0;
+	}
 
 	if (f->index >= ctx->coded_fmt_desc->num_decoded_fmts)
 		return -EINVAL;
