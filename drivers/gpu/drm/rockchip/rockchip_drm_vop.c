@@ -1214,6 +1214,7 @@ static enum drm_mode_status vop_crtc_mode_valid(struct drm_crtc *crtc,
 					const struct drm_display_mode *mode)
 {
 	struct vop *vop = to_vop(crtc);
+	const struct vop_rect *max_output = &vop->data->max_output;
 	long rounded_rate;
 	long lowest, highest;
 
@@ -1235,6 +1236,10 @@ static enum drm_mode_status vop_crtc_mode_valid(struct drm_crtc *crtc,
 	if (rounded_rate > highest)
 		return MODE_CLOCK_HIGH;
 
+	if (max_output->width && max_output->height)
+		return drm_mode_validate_size(mode, max_output->width,
+					      max_output->height);
+
 	return MODE_OK;
 }
 
@@ -1243,7 +1248,18 @@ static bool vop_crtc_mode_fixup(struct drm_crtc *crtc,
 				struct drm_display_mode *adjusted_mode)
 {
 	struct vop *vop = to_vop(crtc);
+	const struct vop_rect *max_output = &vop->data->max_output;
 	unsigned long rate;
+
+	if (max_output->width && max_output->height) {
+		enum drm_mode_status status;
+
+		status = drm_mode_validate_size(adjusted_mode,
+						max_output->width,
+						max_output->height);
+		if (status != MODE_OK)
+			return false;
+	}
 
 	/*
 	 * Clock craziness.
