@@ -152,7 +152,8 @@ struct dw_hdmi_plat_data {
 	const struct dw_hdmi_curr_ctrl *cur_ctr;
 	const struct dw_hdmi_phy_config *phy_config;
 	int (*configure_phy)(struct dw_hdmi *hdmi, void *data,
-			     unsigned long mpixelclock);
+			     unsigned long mpixelclock,
+			     unsigned long mtmdsclock);
 };
 
 struct dw_hdmi *dw_hdmi_probe(struct platform_device *pdev,
