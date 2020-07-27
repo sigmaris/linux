@@ -64,7 +64,7 @@ v4l2_h264_init_reflist_builder(struct v4l2_h264_reflist_builder *b,
 		else
 			b->refs[i].frame_num = dpb[i].frame_num;
 
-		if (dpb[i].reference & V4L2_H264_DPB_FRAME_REF)
+		if (dpb[i].reference == V4L2_H264_DPB_FRAME_REF)
 			pic_order_count = min(dpb[i].top_field_order_cnt,
 					      dpb[i].bottom_field_order_cnt);
 		else if (dpb[i].reference & V4L2_H264_DPB_BOTTOM_REF)
