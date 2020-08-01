@@ -2415,6 +2415,16 @@ static int rkvdec_hevc_adjust_fmt(struct rkvdec_ctx *ctx,
 	return 0;
 }
 
+static u32 rkvdec_hevc_valid_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
+{
+	const struct v4l2_ctrl_hevc_sps *sps = ctrl->p_new.p_hevc_sps;
+
+	if (sps->bit_depth_luma_minus8 == 2)
+		return V4L2_PIX_FMT_NV15;
+	else
+		return V4L2_PIX_FMT_NV12;
+}
+
 static int rkvdec_hevc_start(struct rkvdec_ctx *ctx)
 {
 	struct rkvdec_dev *rkvdec = ctx->dev;
@@ -2516,6 +2526,7 @@ static int rkvdec_hevc_run(struct rkvdec_ctx *ctx)
 
 const struct rkvdec_coded_fmt_ops rkvdec_hevc_fmt_ops = {
 	.adjust_fmt = rkvdec_hevc_adjust_fmt,
+	.valid_fmt = rkvdec_hevc_valid_fmt,
 	.start = rkvdec_hevc_start,
 	.stop = rkvdec_hevc_stop,
 	.run = rkvdec_hevc_run,
