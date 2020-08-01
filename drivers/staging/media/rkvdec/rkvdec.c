@@ -76,6 +76,26 @@ static int rkvdec_try_ctrl(struct v4l2_ctrl *ctrl)
 		if (width > ctx->coded_fmt.fmt.pix_mp.width ||
 		    height > ctx->coded_fmt.fmt.pix_mp.height)
 			return -EINVAL;
+	} else if (ctrl->id == V4L2_CID_MPEG_VIDEO_HEVC_SPS) {
+		const struct v4l2_ctrl_hevc_sps *sps = ctrl->p_new.p_hevc_sps;
+
+		if (sps->chroma_format_idc > 1)
+			/* Only 4:0:0 and 4:2:0 are supported */
+			return -EINVAL;
+		if (sps->bit_depth_luma_minus8 != sps->bit_depth_chroma_minus8)
+			/* Luma and chroma bit depth mismatch */
+			return -EINVAL;
+		if (sps->bit_depth_luma_minus8 != 0 && sps->bit_depth_luma_minus8 != 2)
+			/* Only 8-bit and 10-bit is supported */
+			return -EINVAL;
+
+		if (ctx->valid_fmt && ctx->valid_fmt != rkvdec_valid_fmt(ctx, ctrl))
+			/* Only current valid format */
+			return -EINVAL;
+
+		if (sps->pic_width_in_luma_samples > ctx->coded_fmt.fmt.pix_mp.width ||
+		    sps->pic_height_in_luma_samples > ctx->coded_fmt.fmt.pix_mp.height)
+			return -EINVAL;
 	}
 	return 0;
 }
@@ -84,7 +104,7 @@ static int rkvdec_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct rkvdec_ctx *ctx = container_of(ctrl->handler, struct rkvdec_ctx, ctrl_hdl);
 
-	if (ctrl->id == V4L2_CID_MPEG_VIDEO_H264_SPS && !ctx->valid_fmt) {
+	if (!ctx->valid_fmt) {
 		ctx->valid_fmt = rkvdec_valid_fmt(ctx, ctrl);
 		if (ctx->valid_fmt) {
 			struct v4l2_pix_format_mplane *pix_mp;
@@ -170,6 +190,7 @@ static const struct rkvdec_ctrl_desc rkvdec_hevc_ctrl_descs[] = {
 	{
 		.mandatory = true,
 		.cfg.id = V4L2_CID_MPEG_VIDEO_HEVC_SPS,
+		.cfg.ops = &rkvdec_ctrl_ops,
 	},
 	{
 		.mandatory = true,
