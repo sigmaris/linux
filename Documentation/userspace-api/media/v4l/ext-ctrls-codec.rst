@@ -2054,7 +2054,10 @@ enum v4l2_mpeg_video_h264_hierarchical_coding_type -
     * - __u16
       - ``frame_num``
       -
-    * - __u16
+    * - __u8
+      - ``reserved[2]``
+      - Applications and drivers must set this to zero.
+    * - __u32
       - ``pic_num``
       -
     * - __s32
