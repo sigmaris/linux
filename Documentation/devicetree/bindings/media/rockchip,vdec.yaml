@@ -16,6 +16,11 @@ description: |-
 properties:
   compatible:
     const: rockchip,rk3399-vdec
+    - items:
+        - enum:
+            - rockchip,rk3328-vdec
+        - const: rockchip,rk3399-vdec
+
 
   reg:
     maxItems: 1
