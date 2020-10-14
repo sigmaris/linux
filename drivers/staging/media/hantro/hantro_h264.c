@@ -241,10 +241,10 @@ static void prepare_table(struct hantro_ctx *ctx)
 	if ((dec_param->flags & V4L2_H264_DECODE_PARAM_FLAG_FIELD_PIC) || (sps->flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD)) {
 		for (i = 0; i < HANTRO_H264_DPB_SIZE * 2; ++i) {
 			// check for correct reference use
-			enum v4l2_h264_field_reference parity = (i & 0x1) ?
+			u8 parity = (i & 0x1) ?
 				V4L2_H264_BOTTOM_FIELD_REF : V4L2_H264_TOP_FIELD_REF;
 			if (dpb[i / 2].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE &&
-			    dpb[i / 2].reference & parity)
+			    dpb[i / 2].fields & parity)
 				dpb_valid |= BIT(HANTRO_H264_DPB_SIZE * 2 - 1 - i);
 
 			if (dpb[i / 2].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
