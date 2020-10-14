@@ -783,10 +783,10 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 	}
 
 	for (j = 0; j < RKVDEC_NUM_REFLIST; j++) {
-		enum v4l2_h264_field_reference a_parity =
+		u8 a_parity =
 			(dec_params->flags & V4L2_H264_DECODE_PARAM_FLAG_BOTTOM_FIELD)
 			? V4L2_H264_BOTTOM_FIELD_REF : V4L2_H264_TOP_FIELD_REF;
-		enum v4l2_h264_field_reference b_parity =
+		u8 b_parity =
 			(dec_params->flags & V4L2_H264_DECODE_PARAM_FLAG_BOTTOM_FIELD)
 			? V4L2_H264_TOP_FIELD_REF : V4L2_H264_BOTTOM_FIELD_REF;
 		u32 flags = V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM;
@@ -802,7 +802,7 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 				u8 idx = reflists[j][a];
 				if (idx >= ARRAY_SIZE(dec_params->dpb))
 					continue;
-				if ((dpb[idx].reference & a_parity) == a_parity &&
+				if ((dpb[idx].fields & a_parity) == a_parity &&
 				    (dpb[idx].flags & flags) == long_term) {
 					set_ps_field(hw_rps, DPB_INFO(i, j),
 					             idx | (1 << 4));
@@ -817,7 +817,7 @@ static void assemble_hw_rps(struct rkvdec_ctx *ctx,
 				u8 idx = reflists[j][b];
 				if (idx >= ARRAY_SIZE(dec_params->dpb))
 					continue;
-				if ((dpb[idx].reference & b_parity) == b_parity &&
+				if ((dpb[idx].fields & b_parity) == b_parity &&
 				    (dpb[idx].flags & flags) == long_term) {
 					set_ps_field(hw_rps, DPB_INFO(i, j),
 					             idx | (1 << 4));
