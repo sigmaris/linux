@@ -941,6 +941,11 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_MPEG_VIDEO_VP8_PROFILE:			return "VP8 Profile";
 	case V4L2_CID_MPEG_VIDEO_VP9_PROFILE:			return "VP9 Profile";
 	case V4L2_CID_MPEG_VIDEO_VP9_LEVEL:			return "VP9 Level";
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_DECODE_PARAMS:	return "VP9 Frame Decode Parameters";
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(0):		return "VP9 Frame Context 0";
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(1):		return "VP9 Frame Context 1";
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(2):		return "VP9 Frame Context 2";
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(3):		return "VP9 Frame Context 3";
 
 	/* HEVC controls */
 	case V4L2_CID_MPEG_VIDEO_HEVC_I_FRAME_QP:		return "HEVC I-Frame QP Value";
@@ -1480,6 +1485,15 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 		break;
 	case V4L2_CID_STATELESS_VP8_FRAME:
 		*type = V4L2_CTRL_TYPE_VP8_FRAME;
+		break;
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_DECODE_PARAMS:
+		*type = V4L2_CTRL_TYPE_VP9_FRAME_DECODE_PARAMS;
+		break;
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(0):
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(1):
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(2):
+	case V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(3):
+		*type = V4L2_CTRL_TYPE_VP9_FRAME_CONTEXT;
 		break;
 	case V4L2_CID_MPEG_VIDEO_HEVC_SPS:
 		*type = V4L2_CTRL_TYPE_HEVC_SPS;

@@ -18,6 +18,7 @@
  * This will move to the public headers once this API is fully stable.
  */
 #include <media/hevc-ctrls.h>
+#include <media/vp9-ctrls.h>
 
 /* forward references */
 struct file;
@@ -50,6 +51,8 @@ struct video_device;
  * @p_h264_decode_params:	Pointer to a struct v4l2_ctrl_h264_decode_params.
  * @p_h264_pred_weights:	Pointer to a struct v4l2_ctrl_h264_pred_weights.
  * @p_vp8_frame:		Pointer to a VP8 frame params structure.
+ * @p_vp9_frame_ctx:		Pointer to a VP9 frame context structure.
+ * @p_vp9_frame_decode_params:	Pointer to a VP9 frame params structure.
  * @p_hevc_sps:			Pointer to an HEVC sequence parameter set structure.
  * @p_hevc_pps:			Pointer to an HEVC picture parameter set structure.
  * @p_hevc_slice_params:	Pointer to an HEVC slice parameters structure.
@@ -82,6 +85,8 @@ union v4l2_ctrl_ptr {
 	struct v4l2_ctrl_hevc_slice_params *p_hevc_slice_params;
 	struct v4l2_ctrl_hdr10_cll_info *p_hdr10_cll;
 	struct v4l2_ctrl_hdr10_mastering_display *p_hdr10_mastering;
+	struct v4l2_ctrl_vp9_frame_ctx *p_vp9_frame_ctx;
+	struct v4l2_ctrl_vp9_frame_decode_params *p_vp9_frame_decode_params;
 	struct v4l2_area *p_area;
 	void *p;
 	const void *p_const;
