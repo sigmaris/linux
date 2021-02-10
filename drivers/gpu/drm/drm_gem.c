@@ -1093,7 +1093,7 @@ int drm_gem_mmap_obj(struct drm_gem_object *obj, unsigned long obj_size,
 			drm_gem_object_put(obj);
 			return ret;
 		}
-		WARN_ON(!(vma->vm_flags & VM_DONTEXPAND));
+		//WARN_ON(!(vma->vm_flags & VM_DONTEXPAND));
 	} else {
 		if (obj->funcs && obj->funcs->vm_ops)
 			vma->vm_ops = obj->funcs->vm_ops;
