@@ -593,6 +593,7 @@
 
 &sdhci {
 	bus-width = <8>;
+	max-frequency = <150000000>;
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 	non-removable;
