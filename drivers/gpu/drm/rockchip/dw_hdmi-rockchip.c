@@ -329,7 +329,7 @@ dw_hdmi_rockchip_mode_valid(struct dw_hdmi *hdmi, void *data,
 			return MODE_CLOCK_HIGH;
 	}
 
-	return drm_mode_validate_size(mode, 3840, 2160);
+	return MODE_OK;
 }
 
 static void
