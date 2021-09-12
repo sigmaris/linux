@@ -63,8 +63,14 @@
 #define VOP_INTR_SET_MASK(vop, name, mask, v) \
 		vop_reg_set(vop, &vop->data->intr->name, 0, mask, v, #name)
 
+#define VOP_REG_READBACK(vop, group, name) \
+		    vop_reg_readback(vop, &vop->data->group->name, #name)
+
 #define VOP_REG_SET(vop, group, name, v) \
 		    vop_reg_set(vop, &vop->data->group->name, 0, ~0, v, #name)
+
+#define VOP_HAS_REG(vop, group, name) \
+		(!!(vop->data->group->name.mask))
 
 #define VOP_INTR_SET_TYPE(vop, name, type, v) \
 	do { \
@@ -198,6 +204,21 @@ static inline uint32_t vop_read_reg(struct vop *vop, uint32_t base,
 				    const struct vop_reg *reg)
 {
 	return (vop_readl(vop, base + reg->offset) >> reg->shift) & reg->mask;
+}
+
+static void vop_reg_readback(struct vop *vop, const struct vop_reg *reg,
+			     const char *reg_name)
+{
+	uint32_t val, cached;
+
+	if (!reg || !reg->mask) {
+		DRM_DEV_DEBUG(vop->dev, "Warning: %s not supported\n", reg_name);
+		return;
+	}
+
+	val = vop_readl(vop, reg->offset) & (reg->mask << reg->shift);
+	cached = vop->regsbak[reg->offset >> 2] & ~(reg->mask << reg->shift);
+	vop->regsbak[reg->offset >> 2] = (cached | val);
 }
 
 static void vop_reg_set(struct vop *vop, const struct vop_reg *reg,
@@ -1205,6 +1226,11 @@ static bool vop_dsp_lut_is_enabled(struct vop *vop)
 	return vop_read_reg(vop, 0, &vop->data->common->dsp_lut_en);
 }
 
+static uint32_t vop_lut_buffer_index(struct vop *vop)
+{
+	return vop_read_reg(vop, 0, &vop->data->common->lut_buffer_index);
+}
+
 static void vop_crtc_write_gamma_lut(struct vop *vop, struct drm_crtc *crtc)
 {
 	struct drm_color_lut *lut = crtc->state->gamma_lut->data;
@@ -1225,38 +1251,69 @@ static void vop_crtc_gamma_set(struct vop *vop, struct drm_crtc *crtc,
 {
 	struct drm_crtc_state *state = crtc->state;
 	unsigned int idle;
+	uint32_t lut_idx, old_idx;
 	int ret;
 
 	if (!vop->lut_regs)
 		return;
-	/*
-	 * To disable gamma (gamma_lut is null) or to write
-	 * an update to the LUT, clear dsp_lut_en.
-	 */
-	spin_lock(&vop->reg_lock);
-	VOP_REG_SET(vop, common, dsp_lut_en, 0);
-	vop_cfg_done(vop);
-	spin_unlock(&vop->reg_lock);
 
-	/*
-	 * In order to write the LUT to the internal memory,
-	 * we need to first make sure the dsp_lut_en bit is cleared.
-	 */
-	ret = readx_poll_timeout(vop_dsp_lut_is_enabled, vop,
-				 idle, !idle, 5, 30 * 1000);
-	if (ret) {
-		DRM_DEV_ERROR(vop->dev, "display LUT RAM enable timeout!\n");
-		return;
+	if (!state->gamma_lut || !VOP_HAS_REG(vop, common, update_gamma_lut)) {
+		/*
+		* To disable gamma (gamma_lut is null) or to write
+		* an update to the LUT, clear dsp_lut_en.
+		*/
+		spin_lock(&vop->reg_lock);
+		VOP_REG_SET(vop, common, dsp_lut_en, 0);
+		vop_cfg_done(vop);
+		spin_unlock(&vop->reg_lock);
+
+		/*
+		* In order to write the LUT to the internal memory,
+		* we need to first make sure the dsp_lut_en bit is cleared.
+		*/
+		ret = readx_poll_timeout(vop_dsp_lut_is_enabled, vop,
+					idle, !idle, 5, 30 * 1000);
+		if (ret) {
+			DRM_DEV_ERROR(vop->dev, "display LUT RAM enable timeout!\n");
+			return;
+		}
+
+		if (!state->gamma_lut)
+			return;
+	} else {
+		/*
+		* On RK3399 the gamma LUT can updated without clearing
+		* dsp_lut_en, by setting update_gamma_lut.
+		*/
+		old_idx = vop_lut_buffer_index(vop);
 	}
-
-	if (!state->gamma_lut)
-		return;
 
 	spin_lock(&vop->reg_lock);
 	vop_crtc_write_gamma_lut(vop, crtc);
 	VOP_REG_SET(vop, common, dsp_lut_en, 1);
+	VOP_REG_SET(vop, common, update_gamma_lut, 1);
 	vop_cfg_done(vop);
 	spin_unlock(&vop->reg_lock);
+
+	if (VOP_HAS_REG(vop, common, update_gamma_lut)) {
+		ret = readx_poll_timeout(vop_lut_buffer_index, vop,
+					 lut_idx, lut_idx != old_idx, 5, 30 * 1000);
+		if (ret) {
+			DRM_DEV_ERROR(vop->dev, "gamma LUT update timeout!\n");
+			return;
+		}
+
+		/*
+		* update_gamma_lut is auto cleared by HW, read back the HW value into
+		* our backup of the regs.
+		*/
+		DRM_DEV_DEBUG_DRIVER(vop->dev, "old_idx=%08x, lut_idx=%08x\n", old_idx, lut_idx);
+		DRM_DEV_DEBUG_DRIVER(vop->dev, "after LUT update, vop->regsbak: %08x, Readback: %08x\n",
+			vop->regsbak[vop->data->common->update_gamma_lut.offset >> 2], vop_readl(vop, vop->data->common->update_gamma_lut.offset));
+		spin_lock(&vop->reg_lock);
+		VOP_REG_READBACK(vop, common, update_gamma_lut);
+		spin_unlock(&vop->reg_lock);
+	}
 }
 
 static void vop_crtc_atomic_begin(struct drm_crtc *crtc,
@@ -2133,6 +2190,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 		vop->lut_regs = devm_ioremap_resource(dev, res);
 		if (IS_ERR(vop->lut_regs))
 			return PTR_ERR(vop->lut_regs);
+		DRM_DEV_DEBUG_DRIVER(dev, "Configured gamma LUT\n");
 	}
 
 	vop->regsbak = devm_kzalloc(dev, vop->len, GFP_KERNEL);
