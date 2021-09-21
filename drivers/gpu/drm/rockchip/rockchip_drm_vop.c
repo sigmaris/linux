@@ -1234,14 +1234,20 @@ static uint32_t vop_lut_buffer_index(struct vop *vop)
 static void vop_crtc_write_gamma_lut(struct vop *vop, struct drm_crtc *crtc)
 {
 	struct drm_color_lut *lut = crtc->state->gamma_lut->data;
-	unsigned int i;
+	unsigned int i, bpc;
+
+	if (vop->data->lut_size == 256)
+		bpc = 8;
+	else
+		bpc = 10;
+	DRM_DEV_DEBUG_DRIVER(vop->dev, "write gamma LUT size=%08x, bpc=%d to %p\n", crtc->gamma_size, bpc, vop->lut_regs);
 
 	for (i = 0; i < crtc->gamma_size; i++) {
 		u32 word;
 
-		word = (drm_color_lut_extract(lut[i].red, 10) << 20) |
-		       (drm_color_lut_extract(lut[i].green, 10) << 10) |
-			drm_color_lut_extract(lut[i].blue, 10);
+		word = (drm_color_lut_extract(lut[i].red, bpc) << (2 * bpc)) |
+		       (drm_color_lut_extract(lut[i].green, bpc) << bpc) |
+			drm_color_lut_extract(lut[i].blue, bpc);
 		writel(word, vop->lut_regs + i * 4);
 	}
 }
