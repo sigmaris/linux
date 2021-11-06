@@ -1,0 +1,49 @@
+on:
+  push:
+    branches:
+      - 'ci-*'
+    tags:
+      - '*-ci'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container: sigmaris/aarch64-linux-crossbuilder:latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2
+      - name: Build kernel .deb packages
+        env:
+          ARCH: arm64
+          CROSS_COMPILE: aarch64-linux-gnu-
+        run: |
+          echo "-g$(git rev-parse --short HEAD)-sigmaris" > .scmversion
+          make rockchip_linux_defconfig
+          export KDEB_PKGVERSION="$(make kernelrelease)"
+          make -j$(getconf _NPROCESSORS_ONLN) bindeb-pkg
+          mkdir artifacts
+          mv ../linux-*.buildinfo artifacts
+          mv ../linux-*.changes artifacts
+          mv ../linux-*.deb artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: linuxdebs
+          path: artifacts
+  release:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') && endsWith(github.ref, '-ci')
+    steps:
+      - name: Download built artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: linuxdebs
+          path: linuxdebs
+      - name: Upload packages to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: linuxdebs/*
+          tag: ${{ github.ref }}
+          file_glob: true
