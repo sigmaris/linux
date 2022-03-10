@@ -573,7 +573,7 @@
 		status = "disabled";
 	};
 
-	crypto0: crypto@ff8b8000 {
+	crypto0: crypto@ff8b0000 {
 		compatible = "rockchip,rk3399-crypto";
 		reg = <0x0 0xff8b0000 0x0 0x4000>;
 		interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH 0>;
@@ -582,9 +582,9 @@
 		reset-names = "crypto-rst";
 	};
 
-	crypto1: crypto@ff8c0000 {
+	crypto1: crypto@ff8b8000 {
 		compatible = "rockchip,rk3399-crypto";
-		reg = <0x0 0xff8c0000 0x0 0x4000>;
+		reg = <0x0 0xff8b8000 0x0 0x4000>;
 		interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru SCLK_CRYPTO1>, <&cru HCLK_M_CRYPTO1>, <&cru HCLK_S_CRYPTO1>;
 		resets = <&cru SRST_CRYPTO1>;
