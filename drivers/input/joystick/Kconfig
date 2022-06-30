@@ -344,6 +344,14 @@ config JOYSTICK_MAPLE
 	  To compile this as a module choose M here: the module will be called
 	  maplecontrol.
 
+config JOYSTICK_ODIN_GAMEPAD
+	tristate "AYN Odin Gamepad driver"
+	depends on ARCH_QCOM
+	help
+	  Say Y here if you wish to enable AYN Odin internal gamepad unit.
+	  To compile this as a module choose M here: the module will be called
+	  odin-gamepad.
+
 config JOYSTICK_PSXPAD_SPI
 	tristate "PlayStation 1/2 joypads via SPI interface"
 	depends on SPI
