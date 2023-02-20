@@ -1,0 +1,231 @@
+device_type:  rk3588-rock-5b
+
+job_name: Hardware enablement tests {{job.CI_JOB_ID}}
+timeouts:
+  job:
+    minutes: 15
+  action:
+   minutes: 5
+priority: high
+visibility: public
+
+context:
+  extra_kernel_args: rootwait
+
+actions:
+  - deploy:
+      timeout:
+        minutes: 2
+      to: tftp
+      kernel:
+        url: "{{job.CI_PROJECT_URL}}/-/jobs/%%KERNEL_BUILD_JOB%%/artifacts/raw/vmlinuz"
+        type: image
+      modules:
+        url: "{{job.CI_PROJECT_URL}}/-/jobs/%%KERNEL_BUILD_JOB%%/artifacts/raw/modules.tar.gz"
+        compression: gz
+      dtb:
+        url: "{{job.CI_PROJECT_URL}}/-/jobs/%%KERNEL_BUILD_JOB%%/artifacts/raw/dtbs/rockchip/rk3588-rock-5b.dtb"
+      ramdisk:
+        url: https://gitlab.collabora.com/hardware-enablement/rockchip-3588/debian-image-recipes/-/jobs/artifacts/main/raw/out/trixie-rootfs-arm64-initramfs.gz?job=ci+images
+        compression: gz
+      nfsrootfs:
+        url: https://gitlab.collabora.com/hardware-enablement/rockchip-3588/debian-image-recipes/-/jobs/artifacts/main/raw/out/trixie-rootfs-arm64.tar.gz?job=ci+images
+        compression: gz
+
+  - boot:
+      method: u-boot
+      commands: nfs
+      timeout:
+        minutes: 10
+      auto_login:
+        login_prompt: 'login:'
+        username: user
+        password_prompt: 'Password:'
+        password: user
+        login_commands:
+          - sudo su
+          - env
+          - systemctl --failed
+      prompts:
+        - 'user@rk3588-ci(.*)$'
+        - 'root@rk3588-ci(.*)#'
+
+  - test:
+      timeout:
+        minutes: 5
+      definitions:
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: rtc
+            description: "Run some RTC/NTP tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - ip link
+              - hwclock -w
+              - timedatectl set-ntp true
+              - systemctl restart systemd-timesyncd
+              - timedatectl status
+              - timedatectl timesync-status
+        from: inline
+        name: rtc
+        path: inline/rtc.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: usb
+            description: "Run USB tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - lsusb
+        from: inline
+        name: usb
+        path: inline/usb.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: pci
+            description: "Run PCI tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - lspci -nn
+        from: inline
+        name: pci
+        path: inline/pci.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: i2c
+            description: "Run I2C tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - i2cdetect -l
+        from: inline
+        name: i2c
+        path: inline/i2c.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: alsa
+            description: "Run ALSA tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - cat /proc/asound/cards
+        from: inline
+        name: alsa
+        path: inline/alsa.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: hwmon
+            description: "Run hwmon tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - sensors
+        from: inline
+        name: hwmon
+        path: inline/hwmon.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: iio
+            description: "Run iio tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - iio_info
+        from: inline
+        name: iio
+        path: inline/iio.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: nvmem
+            description: "Run nvmem tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - hexdump /sys/bus/nvmem/devices/rockchip-otp0/nvmem
+        from: inline
+        name: nvmem
+        path: inline/nvmem.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: tcpm
+            description: "Run tcpm tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - cat /sys/class/power_supply/tcpm-source-psy-4-0022/uevent || true
+        from: inline
+        name: tcpm
+        path: inline/tcpm.yaml
+      - repository:
+          metadata:
+            format: Lava-Test Test Definition 1.0
+            name: v4l2
+            description: "Run v4l2 tests"
+            os:
+              - apertis
+            scope:
+              - functional
+            environment:
+              - lava-test-shell
+          run:
+            steps:
+              - for dev in /dev/video* ; do echo "Device $dev" ; v4l2-ctl -d $dev -l -D ; echo "" ; done
+        from: inline
+        name: v4l2
+        path: inline/v4l2.yaml
