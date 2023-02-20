@@ -113,6 +113,7 @@ modules.order
 !.kunitconfig
 !.mailmap
 !.rustfmt.toml
+!.gitlab-ci.yml
 
 #
 # Generated include files
