@@ -841,6 +841,8 @@ static void rk_hdptx_phy_disable(struct rk_hdptx_phy *hdptx)
 {
 	u32 val;
 
+	dev_dbg(hdptx->dev, "PHY disable\n");
+
 	/* reset phy and apb, or phy locked flag may keep 1 */
 	reset_control_assert(hdptx->rsts[RST_PHY].rstc);
 	usleep_range(20, 30);
@@ -1366,6 +1368,8 @@ static int rk_hdptx_phy_power_off(struct phy *phy)
 {
 	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
 
+	dev_dbg(hdptx->dev, "power_off\n");
+
 	return rk_hdptx_phy_consumer_put(hdptx, false);
 }
 
@@ -1384,12 +1388,16 @@ static int rk_hdptx_phy_clk_prepare(struct clk_hw *hw)
 {
 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
 
+	dev_dbg(hdptx->dev, "clk_prepare\n");
+
 	return rk_hdptx_phy_consumer_get(hdptx, hdptx->rate / 100);
 }
 
 static void rk_hdptx_phy_clk_unprepare(struct clk_hw *hw)
 {
 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	dev_dbg(hdptx->dev, "clk_unprepare\n");
 
 	rk_hdptx_phy_consumer_put(hdptx, true);
 }
@@ -1426,6 +1434,8 @@ static int rk_hdptx_phy_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 				     unsigned long parent_rate)
 {
 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	dev_dbg(hdptx->dev, "clk_set_rate rate=%lu\n", rate);
 
 	return rk_hdptx_ropll_tmds_cmn_config(hdptx, rate / 100);
 }
@@ -1472,6 +1482,8 @@ static int rk_hdptx_phy_runtime_suspend(struct device *dev)
 {
 	struct rk_hdptx_phy *hdptx = dev_get_drvdata(dev);
 
+	dev_dbg(hdptx->dev, "suspend\n");
+
 	clk_bulk_disable_unprepare(hdptx->nr_clks, hdptx->clks);
 
 	return 0;
@@ -1481,6 +1493,8 @@ static int rk_hdptx_phy_runtime_resume(struct device *dev)
 {
 	struct rk_hdptx_phy *hdptx = dev_get_drvdata(dev);
 	int ret;
+
+	dev_dbg(hdptx->dev, "resume\n");
 
 	ret = clk_bulk_prepare_enable(hdptx->nr_clks, hdptx->clks);
 	if (ret)
