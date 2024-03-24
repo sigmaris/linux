@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/dts-v1/;
+
+#include "sdm845-ayn-odin.dts"
+
+&dsi0 {
+	panel@0 {
+		rotation = <90>;
+	};
+};
