@@ -4,8 +4,11 @@
 
 #include "sdm845-ayn-odin.dts"
 
-&dsi0 {
-	panel@0 {
-		rotation = <90>;
-	};
+/ {
+	model = "AYN Odin M2";
+	compatible = "ayn,odin-m2", "ayn,odin", "qcom,sdm845";
+};
+
+&display_panel {
+	rotation = <270>;
 };
