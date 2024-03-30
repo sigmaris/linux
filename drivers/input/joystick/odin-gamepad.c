@@ -42,11 +42,11 @@ struct adc {
 
 struct btn {
 	const char *label;
-	int num;
 	int report_type;
 	int linux_code;
 	bool value;
 	bool active_level;
+	struct gpio_desc *gpiod;
 };
 
 struct gamepad {
@@ -372,11 +372,11 @@ static void gamepad_get(struct input_dev *input)
 	for (nbtn = 0; nbtn < gamepad->btn_count; nbtn++) {
 		struct btn *btn = &gamepad->btns[nbtn];
 
-		if (gpio_get_value_cansleep(btn->num) < 0) {
+		if (gpiod_get_value_cansleep(btn->gpiod) < 0) {
 			dev_err(gamepad->dev, "failed to get gpio state\n");
 			continue;
 		}
-		value = gpio_get_value(btn->num);
+		value = gpiod_get_value(btn->gpiod);
 		if (value != btn->value) {
 			input_event(input,
 				btn->report_type,
@@ -568,35 +568,18 @@ static int gamepad_btn_setup(struct device *dev, struct gamepad *gamepad)
 
 	nbtn = 0;
 	for_each_child_of_node(node, pp) {
-		enum of_gpio_flags flags;
 		struct btn *btn = &gamepad->btns[nbtn++];
+		const char *desc = "key";
 		int error;
 
-		btn->num = of_get_gpio_flags(pp, 0, &flags);
-		if (btn->num < 0) {
-			error = btn->num;
-			dev_err(dev, "Failed to get GPIO flags, error: %d\n",
-				error);
-			return error;
-		}
+		btn->gpiod = devm_fwnode_gpiod_get(dev, of_fwnode_handle(pp),
+						NULL, GPIOD_IN, desc);
 
-		btn->active_level = (flags & OF_GPIO_ACTIVE_LOW) ? 0 : 1;
+		btn->active_level = gpiod_is_active_low(btn->gpiod) ? 0 : 1;
 		btn->label = of_get_property(pp, "label", NULL);
 
-		if (gpio_is_valid(btn->num)) {
-			error = devm_gpio_request_one(dev, btn->num,
-						      GPIOF_IN, btn->label);
-			if (error < 0) {
-				dev_err(dev,
-					"Failed to request GPIO %d, error %d\n",
-					btn->num, error);
-				return error;
-			}
-		}
-
 		if (of_property_read_u32(pp, "linux,code", &btn->linux_code)) {
-			dev_err(dev, "Button without keycode: 0x%x\n",
-				btn->num);
+			dev_err(dev, "Button without keycode\n");
 			return -EINVAL;
 		}
 
