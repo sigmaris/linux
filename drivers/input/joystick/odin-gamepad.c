@@ -575,7 +575,7 @@ static int gamepad_btn_setup(struct device *dev, struct gamepad *gamepad)
 		btn->gpiod = devm_fwnode_gpiod_get(dev, of_fwnode_handle(pp),
 						NULL, GPIOD_IN, desc);
 
-		btn->active_level = gpiod_is_active_low(btn->gpiod) ? 0 : 1;
+		btn->active_level = gpiod_is_active_low(btn->gpiod) ? 1 : 0;
 		btn->label = of_get_property(pp, "label", NULL);
 
 		if (of_property_read_u32(pp, "linux,code", &btn->linux_code)) {
