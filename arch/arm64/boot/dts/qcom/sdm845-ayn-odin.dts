@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2022, Teguh Sobirin.
+ * Copyright (c) 2024, Anton Bambura.
  */
 
 /dts-v1/;
@@ -31,13 +32,20 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	/* Fixed crystal oscillator dedicated to MCP2517FD */
+	clk40M: can-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <40000000>;
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&volume_up_gpio>;
 
-		vol-up {
+		key-volume-up {
 			label = "Volume Up";
 			linux,code = <KEY_VOLUMEUP>;
 			gpios = <&pm8998_gpios 6 GPIO_ACTIVE_LOW>;
@@ -51,8 +59,6 @@
 		gamepad-vendor = <0x2020>;
 		gamepad-product = <0x0111>;
 		gamepad-revision = <0x0001>;
-
-		status = "okay";
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&btn_pins &btn_en_active>;
@@ -72,7 +78,7 @@
 		adc-count = <6>;
 		adc-fuzz = <30>;
 		adc-flat = <30>;
-		adc-deadzone = <20>;
+		adc-deadzone = <200>;
 		adc-x-range = <12000>;
 		adc-y-range = <12000>;
 		adc-rx-range = <12000>;
@@ -181,15 +187,29 @@
 
 	connector {
 		compatible = "hdmi-connector";
-		label = "hdmi";
 
+		label = "hdmi";
 		type = "d";
+
+		hdmi-pwr-supply = <&hdmi_en_reg>;
+		hpd-gpios = <&tlmm 121 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&hdmi_hpd>;
 
 		port {
 			hdmi_con: endpoint {
 				remote-endpoint = <&lt8912b_out>;
 			};
 		};
+	};
+
+	hdmi_en_reg: hdmi-en-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "hdmi_en";
+
+		gpio = <&tlmm 13 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
 	};
 
 	vph_pwr: vph-pwr-regulator {
@@ -559,20 +579,22 @@
 	};
 };
 
-// &spi0 {
-// 	status = "okay";
-// 	cs-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
+&spi0 {
+	/*
+	 * TODO
+	 * [   16.605399] sdm845-pinctrl 3400000.pinctrl: pin GPIO_0 already requested by odin-gamepad; cannot claim for 880000.spi
+	 */
+	status = "disabled";
+	cs-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
 
-// 	can@0 {
-// 		compatible = "microchip,mcp2517fd";
-// 		reg = <0>;
-// 		clocks = <&clk40M>;
-// 		interrupts-extended = <&tlmm 34 IRQ_TYPE_LEVEL_LOW>;
-// 		spi-max-frequency = <10000000>;
-// 		vdd-supply = <&vdc_5v>;
-// 		xceiver-supply = <&vdc_5v>;
-// 	};
-// };
+	can@0 {
+		compatible = "microchip,mcp2517fd";
+		reg = <0>;
+		clocks = <&clk40M>;
+		interrupts-extended = <&tlmm 34 IRQ_TYPE_LEVEL_LOW>;
+		spi-max-frequency = <10000000>;
+	};
+};
 
 &ibb {
 	regulator-min-microvolt = <4600000>;
@@ -829,6 +851,11 @@
 	};
 };
 
+&slpi_pas {
+	firmware-name = "qcom/sdm845/AYN/Odin/slpi.mbn";
+	status = "okay";
+};
+
 &tlmm {
 	sdc2_default_state: sdc2-default {
 		clk {
@@ -896,6 +923,14 @@
 		function = "gpio";
 		drive-strength = <16>;
 		bias-disable;
+	};
+
+	hdmi_hpd: hdmi-hpd-active {
+		pins = "gpio121";
+		function = "gpio";
+		drive-strength = <10>;
+		bias-pull-up;
+		input-enable;
 	};
 };
 
