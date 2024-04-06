@@ -336,7 +336,7 @@
 		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&panel_reset_pins &panel_te_pin &panel_pmgpio_pins>;
+		pinctrl-0 = <&panel_reset_pins &panel_te_pin>;
 
 		ports {
 			#address-cells = <1>;
@@ -443,14 +443,6 @@
 		bias-pull-up;
 		qcom,drive-strength = <0>;
 	};
-
-	panel_pmgpio_pins: panel-pmgpio-active {
-		pins = "gpio2", "gpio5";
-		function = "normal";
-		input-enable;
-		bias-disable;
-		power-source = <0>;
-	};
 };
 
 &pm8998_pon {
@@ -526,32 +518,25 @@
 &tlmm {
 	gpio-reserved-ranges = <0 4>, <81 4>;
 
-	panel_te_pin: panel-te {
-		mux {
-			pins = "gpio12";
-			function = "mdp_vsync";
-			drive-strength = <2>;
-			bias-disable;
-			input-enable;
-		};
+	panel_te_pin: panel-te-state {
+		pins = "gpio12";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
 	};
 
-	panel_reset_pins: panel-active {
-		mux {
-			pins = "gpio6", "gpio52";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-disable = <0>;
-		};
+	panel_reset_pins: panel-active-state {
+		pins = "gpio6";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
 	};
 
-	panel_suspend: panel-suspend {
-		mux {
-			pins = "gpio6", "gpio52";
-			function = "gpio";
-			drive-strength = <2>;
-			bias-pull-down;
-		};
+	panel_suspend: panel-suspend-state {
+		pins = "gpio6";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
 	};
 
 	touchscreen_reset: ts-reset {
