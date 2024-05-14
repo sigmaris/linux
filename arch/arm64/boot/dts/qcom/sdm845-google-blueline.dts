@@ -326,7 +326,17 @@
 	status = "okay";
 	vdda-supply = <&vdda_mipi_dsi0_1p2>;
 
-	panel {
+	ports {
+		port@1 {
+			endpoint {
+				remote-endpoint = <&lg_sw43408_in_0>;
+				data-lanes = <0 1 2 3>;
+				qcom,te-source = "mdp_vsync_e";
+			};
+		};
+	};
+
+	panel@0 {
 		compatible = "lg,sw43408";
 		reg = <0>;
 
