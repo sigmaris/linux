@@ -2,3 +2,4 @@
 obj-y += iep/
 obj-y += rga/
 obj-y += rkisp1/
+obj-$(CONFIG_VIDEO_ROCKCHIP_VDEC2)	+= rkvdec2/
