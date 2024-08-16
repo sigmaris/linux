@@ -511,18 +511,14 @@
 	};
 };
 
-&qup_uart9_default {
-	pinconf-tx {
-		pins = "gpio4";
-		drive-strength = <2>;
-		bias-disable;
-	};
+&qup_uart9_rx {
+	drive-strength = <2>;
+	bias-pull-up;
+};
 
-	pinconf-rx {
-		pins = "gpio5";
-		drive-strength = <2>;
-		bias-pull-up;
-	};
+&qup_uart9_tx {
+	drive-strength = <2>;
+	bias-disable;
 };
 
 &tlmm {
@@ -584,6 +580,7 @@
 };
 
 &uart9 {
+	label = "LS-UART1";
 	status = "okay";
 };
 
