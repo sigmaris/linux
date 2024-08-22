@@ -6,6 +6,8 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include <dt-bindings/sound/qcom,q6afe.h>
@@ -49,6 +51,37 @@
 			label = "Volume Up";
 			linux,code = <KEY_VOLUMEUP>;
 			gpios = <&pm8998_gpios 6 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_leds_default>;
+
+		led-0 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 7 GPIO_ACTIVE_HIGH>;
+			label = "right_joystick";
+		};
+
+		led-1 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 25 GPIO_ACTIVE_HIGH>;
+			label = "left_joystick";
+		};
+
+		led-2 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 87 GPIO_ACTIVE_HIGH>;
+			label = "right_side";
+		};
+
+		led-3 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 129 GPIO_ACTIVE_HIGH>;
+			label = "left_side";
 		};
 	};
 
@@ -688,6 +721,33 @@
 	power-supplies = <&pmi8998_charger>;
 };
 
+&pmi8998_lpg {
+	status = "okay";
+
+	multi-led {
+		color = <LED_COLOR_ID_RGB>;
+		function = LED_FUNCTION_STATUS;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		led@3 {
+			reg = <3>;
+			color = <LED_COLOR_ID_BLUE>;
+		};
+
+		led@4 {
+			reg = <4>;
+			color = <LED_COLOR_ID_GREEN>;
+		};
+
+		led@5 {
+			reg = <5>;
+			color = <LED_COLOR_ID_RED>;
+		};
+	};
+};
+
 &pmi8998_rradc {
 	status = "okay";
 	monitored-battery = <&battery>;
@@ -916,6 +976,13 @@
 			drive-strength = <16>;
 			bias-pull-up;
 		};
+	};
+
+	gpio_leds_default: gpio-leds-default {
+		pins = "gpio7", "gpio25", "gpio87", "gpio129";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-disable;
 	};
 
 	panel_reset_active: panel-reset-active {
