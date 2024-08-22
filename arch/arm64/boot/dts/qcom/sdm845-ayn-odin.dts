@@ -54,6 +54,14 @@
 		};
 	};
 
+	fan_en_reg: fan-en-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "fan_en";
+
+		gpio = <&tlmm 44 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 
@@ -207,6 +215,117 @@
 			gpios = <&tlmm 49 GPIO_ACTIVE_LOW>;
 			label = "btn_gpio15";
 			linux,code = <BTN_MODE>;
+		};
+	};
+
+	fan: pwm-fan {
+		compatible = "pwm-fan";
+		cooling-levels = <0 40 127>;
+		#cooling-cells = <2>;
+		fan-supply = <&fan_en_reg>;
+		pinctrl-0 = <&pwm_fan_ctrl>;
+		pinctrl-names = "default";
+		// interrupt-parent = <&tlmm>;
+		// interrupts = <30 IRQ_TYPE_EDGE_RISING>;
+		pwms = <&pmi8998_lpg 1 50000>;
+	};
+
+	thermal-zones {
+		cluster0-thermal {
+			trips {
+				cluster0_fan0: cluster0-fan0 {
+					temperature = <50000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+				cluster0_fan1: cluster0-fan1 {
+					temperature = <60000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+			};
+			cooling-maps {
+				map1 {
+					trip = <&cluster0_fan0>;
+					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+				};
+				map2 {
+					trip = <&cluster0_fan1>;
+					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+				};
+			};
+		};
+		cluster1-thermal {
+			trips {
+				cluster1_fan0: cluster1-fan0 {
+					temperature = <50000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+				cluster1_fan1: cluster1-fan1 {
+					temperature = <60000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+			};
+			cooling-maps {
+				map1 {
+					trip = <&cluster1_fan0>;
+					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+				};
+				map2 {
+					trip = <&cluster1_fan1>;
+					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+				};
+			};
+		};
+		gpu-top-thermal {
+			trips {
+				gpu_top_fan0: gpu-top-fan0 {
+					temperature = <50000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+				gpu_top_fan1: gpu-top-fan1 {
+					temperature = <60000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+			};
+			cooling-maps {
+				map1 {
+					trip = <&gpu_top_fan0>;
+					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+				};
+				map2 {
+					trip = <&gpu_top_fan1>;
+					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+				};
+			};
+		};
+		gpu-bottom-thermal {
+			trips {
+				gpu_bottom_fan0: gpu-bottom-fan0 {
+					temperature = <50000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+				gpu_bottom_fan1: gpu-bottom-fan1 {
+					temperature = <60000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
+			};
+			cooling-maps {
+				map1 {
+					trip = <&gpu_bottom_fan0>;
+					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+				};
+				map2 {
+					trip = <&gpu_bottom_fan1>;
+					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+				};
+			};
 		};
 	};
 
@@ -719,6 +838,18 @@
 	status = "okay";
 	monitored-battery = <&battery>;
 	power-supplies = <&pmi8998_charger>;
+};
+
+&pmi8998_gpios {
+	pwm_fan_ctrl: pwm-fan-ctrl {
+		bias-disable;
+		drive-push-pull;
+		function = PMIC_GPIO_FUNC_FUNC1;
+		output-low;
+		pins = "gpio5";
+		power-source = <0>;
+		qcom,drive-strength = <PMIC_GPIO_STRENGTH_LOW>;
+	};
 };
 
 &pmi8998_lpg {
