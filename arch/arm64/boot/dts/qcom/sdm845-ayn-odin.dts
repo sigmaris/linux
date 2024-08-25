@@ -587,10 +587,11 @@
 
 		backlight = <&pmi8998_wled>;
 		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
 		rotation = <90>;
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&panel_reset_active>;
+		pinctrl-0 = <&panel_reset_active &panel_enable_active>;
 
 		port {
 			panel_in: endpoint {
@@ -1109,6 +1110,13 @@
 
 	gpio_leds_default: gpio-leds-default {
 		pins = "gpio7", "gpio25", "gpio87", "gpio129";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	panel_enable_active: panel-enable-active {
+		pins = "gpio120";
 		function = "gpio";
 		drive-strength = <16>;
 		bias-disable;
