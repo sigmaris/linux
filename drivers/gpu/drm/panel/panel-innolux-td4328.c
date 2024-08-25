@@ -12,6 +12,7 @@
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
+#include <drm/drm_probe_helper.h>
 
 struct innolux_td4328 {
 	struct drm_panel panel;
@@ -53,8 +54,19 @@ static int innolux_td4328_on(struct innolux_td4328 *ctx)
 				   0x00, 0x00);
 	mipi_dsi_generic_write_seq(dsi, 0xd6, 0x01);
 	mipi_dsi_generic_write_seq(dsi, 0xb0, 0x03);
-	mipi_dsi_dcs_write_seq(dsi, 0x2a, 0x00, 0x00, 0x04, 0x37);
-	mipi_dsi_dcs_write_seq(dsi, 0x2b, 0x00, 0x00, 0x07, 0x7f);
+
+	ret = mipi_dsi_dcs_set_column_address(dsi, 0x0000, 0x0437);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set column address: %d\n", ret);
+		return ret;
+	}
+
+	ret = mipi_dsi_dcs_set_page_address(dsi, 0x0000, 0x077f);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set page address: %d\n", ret);
+		return ret;
+	}
+
 	mipi_dsi_dcs_write_seq(dsi, 0x35);
 
 	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
@@ -160,32 +172,20 @@ static const struct drm_display_mode innolux_td4328_mode = {
 	.vtotal = 1920 + 20 + 8 + 20,
 	.width_mm = 75,
 	.height_mm = 132,
+	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
 };
 
 static int innolux_td4328_get_modes(struct drm_panel *panel,
 				    struct drm_connector *connector)
 {
-	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
-	struct drm_display_mode *mode;
-
-	mode = drm_mode_duplicate(connector->dev, &innolux_td4328_mode);
-	if (!mode)
-		return -ENOMEM;
-
-	drm_mode_set_name(mode);
-
-	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-	connector->display_info.width_mm = mode->width_mm;
-	connector->display_info.height_mm = mode->height_mm;
-	drm_mode_probed_add(connector, mode);
-
 	/*
 	 * TODO: Remove once all drm drivers call
 	 * drm_connector_set_orientation_from_panel()
 	 */
+	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
 	drm_connector_set_panel_orientation(connector, ctx->orientation);
 
-	return 1;
+	return drm_connector_helper_get_modes_fixed(connector, &innolux_td4328_mode);
 }
 
 static enum drm_panel_orientation innolux_td4328_get_orientation(struct drm_panel *panel)
@@ -251,9 +251,8 @@ static int innolux_td4328_probe(struct mipi_dsi_device *dsi)
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
-		dev_err(dev, "Failed to attach to DSI host: %d\n", ret);
 		drm_panel_remove(&ctx->panel);
-		return ret;
+		return dev_err_probe(dev, ret, "Failed to attach to DSI host\n");
 	}
 
 	return 0;
