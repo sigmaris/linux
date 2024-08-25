@@ -20,7 +20,6 @@ struct innolux_td4328 {
 	struct regulator_bulk_data supplies[3];
 	struct gpio_desc *reset_gpio;
 	enum drm_panel_orientation orientation;
-	bool prepared;
 };
 
 static inline struct innolux_td4328 *to_innolux_td4328(struct drm_panel *panel)
@@ -38,8 +37,9 @@ static void innolux_td4328_reset(struct innolux_td4328 *ctx)
 	msleep(80);
 }
 
-static int innolux_td4328_on(struct innolux_td4328 *ctx)
+static int innolux_td4328_enable(struct drm_panel *panel)
 {
+	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
@@ -91,8 +91,9 @@ static int innolux_td4328_on(struct innolux_td4328 *ctx)
 	return 0;
 }
 
-static int innolux_td4328_off(struct innolux_td4328 *ctx)
+static int innolux_td4328_disable(struct drm_panel *panel)
 {
+	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
@@ -122,9 +123,6 @@ static int innolux_td4328_prepare(struct drm_panel *panel)
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	if (ctx->prepared)
-		return 0;
-
 	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 	if (ret < 0) {
 		dev_err(dev, "Failed to enable regulators: %d\n", ret);
@@ -133,35 +131,16 @@ static int innolux_td4328_prepare(struct drm_panel *panel)
 
 	innolux_td4328_reset(ctx);
 
-	ret = innolux_td4328_on(ctx);
-	if (ret < 0) {
-		dev_err(dev, "Failed to initialize panel: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
-		return ret;
-	}
-
-	ctx->prepared = true;
 	return 0;
 }
 
 static int innolux_td4328_unprepare(struct drm_panel *panel)
 {
 	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
-	struct device *dev = &ctx->dsi->dev;
-	int ret;
-
-	if (!ctx->prepared)
-		return 0;
-
-	ret = innolux_td4328_off(ctx);
-	if (ret < 0)
-		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 
-	ctx->prepared = false;
 	return 0;
 }
 
@@ -202,6 +181,8 @@ static enum drm_panel_orientation innolux_td4328_get_orientation(struct drm_pane
 
 static const struct drm_panel_funcs innolux_td4328_panel_funcs = {
 	.prepare = innolux_td4328_prepare,
+	.enable = innolux_td4328_enable,
+	.disable = innolux_td4328_disable,
 	.unprepare = innolux_td4328_unprepare,
 	.get_modes = innolux_td4328_get_modes,
 	.get_orientation = innolux_td4328_get_orientation,
