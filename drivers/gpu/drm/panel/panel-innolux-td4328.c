@@ -67,7 +67,7 @@ static int innolux_td4328_on(struct innolux_td4328 *ctx)
 		return ret;
 	}
 
-	mipi_dsi_dcs_write_seq(dsi, 0x35);
+	mipi_dsi_dcs_write_seq(dsi, 0x35, 0x00);
 
 	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
 	if (ret < 0) {
