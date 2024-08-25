@@ -19,6 +19,7 @@ struct innolux_td4328 {
 	struct mipi_dsi_device *dsi;
 	struct regulator_bulk_data supplies[3];
 	struct gpio_desc *reset_gpio;
+	struct gpio_desc *enable_gpio;
 	enum drm_panel_orientation orientation;
 };
 
@@ -129,6 +130,8 @@ static int innolux_td4328_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
+	gpiod_set_value_cansleep(ctx->enable_gpio, 1);
+
 	innolux_td4328_reset(ctx);
 
 	return 0;
@@ -138,6 +141,7 @@ static int innolux_td4328_unprepare(struct drm_panel *panel)
 {
 	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
 
+	gpiod_set_value_cansleep(ctx->enable_gpio, 0);
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 
@@ -206,10 +210,24 @@ static int innolux_td4328_probe(struct mipi_dsi_device *dsi)
 	if (ret < 0)
 		return dev_err_probe(dev, ret, "Failed to get regulators\n");
 
+	ret = regulator_set_voltage(ctx->supplies[1].consumer,
+				    5500000, 5500000);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to request 5.5v for vddpos\n");
+	ret = regulator_set_voltage(ctx->supplies[2].consumer,
+				    5500000, 5500000);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to request 5.5v for vddneg\n");
+
 	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(ctx->reset_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
 				     "Failed to get reset-gpios\n");
+
+	ctx->enable_gpio = devm_gpiod_get(dev, "enable", GPIOD_ASIS);
+	if (IS_ERR(ctx->enable_gpio))
+		return dev_err_probe(dev, PTR_ERR(ctx->enable_gpio),
+				     "Failed to get enable-gpios\n");
 
 	ret = of_drm_get_panel_orientation(dev->of_node, &ctx->orientation);
 	if (ret < 0) {
