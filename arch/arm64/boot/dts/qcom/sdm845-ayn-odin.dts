@@ -93,128 +93,77 @@
 		};
 	};
 
-	odin-gamepad {
-		compatible = "odin-gamepad";
+	gamepad {
+		compatible = "ayntec,odin-gamepad";
 
-		gamepad-name = "Odin Gamepad";
-		gamepad-vendor = <0x2020>;
-		gamepad-product = <0x0111>;
-		gamepad-revision = <0x0001>;
+		dpad-down-gpio = <&tlmm 128 GPIO_ACTIVE_LOW>;
+		dpad-left-gpio = <&tlmm 52 GPIO_ACTIVE_LOW>;
+		dpad-right-gpio = <&tlmm 122 GPIO_ACTIVE_LOW>;
+		dpad-up-gpio = <&tlmm 124 GPIO_ACTIVE_LOW>;
+		east-btn-gpio = <&tlmm 96 GPIO_ACTIVE_LOW>;
+		l1-btn-gpio = <&tlmm 26 GPIO_ACTIVE_LOW>;
+		home-btn-gpio = <&tlmm 49 GPIO_ACTIVE_LOW>;
+		north-btn-gpio = <&tlmm 92 GPIO_ACTIVE_LOW>;
+		r1-btn-gpio = <&tlmm 91 GPIO_ACTIVE_LOW>;
+		rear-l-btn-gpio = <&tlmm 116 GPIO_ACTIVE_LOW>;
+		rear-r-btn-gpio = <&tlmm 24 GPIO_ACTIVE_LOW>;
+		select-btn-gpio = <&tlmm 0 GPIO_ACTIVE_LOW>;
+		south-btn-gpio = <&tlmm 95 GPIO_ACTIVE_LOW>;
+		start-btn-gpio = <&tlmm 3 GPIO_ACTIVE_LOW>;
+		thumb-l-btn-gpio = <&tlmm 40 GPIO_ACTIVE_LOW>;
+		thumb-r-rtn-gpio = <&tlmm 22 GPIO_ACTIVE_LOW>;
+		west-btn-gpio = <&tlmm 41 GPIO_ACTIVE_LOW>;
 
+		io-channel-names = "x-axis", "y-axis", "rx-axis",
+				   "ry-axis", "l2-trigger", "r2-trigger";
+		io-channels = <&pm8998_adc ADC5_GPIO3>,
+			      <&pm8998_adc ADC5_GPIO2>,
+			      <&pm8998_adc ADC5_GPIO5>,
+			      <&pm8998_adc ADC5_GPIO6_DIV3>,
+			      <&pm8998_adc ADC5_GPIO1>,
+			      <&pm8998_adc ADC5_GPIO4>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&btn_pins &btn_en_active>;
 
-		io-channel-names = "abs_x", "abs_y",
-				 "abs_rx", "abs_ry",
-				 "abs_z", "abs_rz";
-		io-channels = <&pm8998_adc ADC5_GPIO2>,
-					  <&pm8998_adc ADC5_GPIO3>,
-					  <&pm8998_adc ADC5_GPIO5>,
-					  <&pm8998_adc ADC5_GPIO6_DIV3>,
-					  <&pm8998_adc ADC5_GPIO1>,
-					  <&pm8998_adc ADC5_GPIO4>;
-
-		poll-interval = <10>;
-
-		adc-count = <6>;
-		adc-fuzz = <30>;
-		adc-flat = <30>;
-		adc-deadzone = <200>;
-		adc-x-range = <12000>;
-		adc-y-range = <12000>;
-		adc-rx-range = <12000>;
-		adc-ry-range = <12000>;
-		adc-z-range = <12000>;
-		adc-rz-range = <12000>;
-
-		btn_gpio01 {
-			gpios = <&tlmm 96 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio01";
-			linux,code = <BTN_EAST>;
+		x-axis {
+			abs-range = <1300000>;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 
-		btn_gpio02 {
-			gpios = <&tlmm 95 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio02";
-			linux,code = <BTN_SOUTH>;
+		y-axis {
+			abs-range = <1300000>;
+			inverted;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 
-		btn_gpio03 {
-			gpios = <&tlmm 41 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio03";
-			linux,code = <BTN_WEST>;
+		rx-axis {
+			abs-range = <1300000>;
+			inverted;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 
-		btn_gpio04 {
-			gpios = <&tlmm 92 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio04";
-			linux,code = <BTN_NORTH>;
+		ry-axis {
+			abs-range = <1300000>;
+			inverted;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 
-		btn_gpio05 {
-			gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio05";
-			linux,code = <BTN_TL>;
+		l2-trigger {
+			abs-range = <1400000>;
+			inverted;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 
-		btn_gpio06 {
-			gpios = <&tlmm 91 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio06";
-			linux,code = <BTN_TR>;
-		};
-
-		btn_gpio07 {
-			gpios = <&tlmm 0 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio07";
-			linux,code = <BTN_SELECT>;
-		};
-
-		btn_gpio08 {
-			gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio08";
-			linux,code = <BTN_START>;
-		};
-
-		btn_gpio09 {
-			gpios = <&tlmm 40 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio09";
-			linux,code = <BTN_THUMBL>;
-		};
-
-		btn_gpio10 {
-			gpios = <&tlmm 22 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio10";
-			linux,code = <BTN_THUMBR>;
-		};
-
-		btn_gpio11 {
-			gpios = <&tlmm 124 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio11";
-			linux,code = <BTN_DPAD_UP>;
-		};
-
-		btn_gpio12 {
-			gpios = <&tlmm 128 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio12";
-			linux,code = <BTN_DPAD_DOWN>;
-		};
-
-		btn_gpio13 {
-			gpios = <&tlmm 52 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio13";
-			linux,code = <BTN_DPAD_LEFT>;
-		};
-
-		btn_gpio14 {
-			gpios = <&tlmm 122 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio14";
-			linux,code = <BTN_DPAD_RIGHT>;
-		};
-
-		btn_gpio15 {
-			gpios = <&tlmm 49 GPIO_ACTIVE_LOW>;
-			label = "btn_gpio15";
-			linux,code = <BTN_MODE>;
+		r2-trigger {
+			abs-range = <1400000>;
+			inverted;
+			abs-flat = <10000>;
+			abs-fuzz = <10000>;
 		};
 	};
 
@@ -770,42 +719,42 @@
 };
 
 &pm8998_adc {
-	adc-chan@12 {
+	channel@12 {
 		reg = <ADC5_GPIO1>;
 		label = "gpio1";
 		qcom,decimation = <256>;
 		qcom,pre-scaling = <1 1>;
 	};
 
-	adc-chan@13 {
+	channel@13 {
 		reg = <ADC5_GPIO2>;
 		label = "gpio2";
 		qcom,decimation = <256>;
 		qcom,pre-scaling = <1 1>;
 	};
 
-	adc-chan@14 {
+	channel@14 {
 		reg = <ADC5_GPIO3>;
 		label = "gpio3";
 		qcom,decimation = <256>;
 		qcom,pre-scaling = <1 1>;
 	};
 
-	adc-chan@15 {
+	channel@15 {
 		reg = <ADC5_GPIO4>;
 		label = "gpio4";
 		qcom,decimation = <256>;
 		qcom,pre-scaling = <1 1>;
 	};
 
-	adc-chan@16 {
+	channel@16 {
 		reg = <ADC5_GPIO5>;
 		label = "gpio5";
 		qcom,decimation = <256>;
 		qcom,pre-scaling = <1 1>;
 	};
 
-	adc-chan@97 {
+	channel@97 {
 		reg = <ADC5_GPIO6_DIV3>;
 		label = "gpio6";
 		qcom,decimation = <256>;
@@ -1098,10 +1047,11 @@
 
 	btn_pins: btn-pins {
 		mux {
-			pins =	"gpio96", "gpio95", "gpio41", "gpio92",
-				"gpio26", "gpio91", "gpio0", "gpio3",
-				"gpio40", "gpio22", "gpio124", "gpio128",
-				"gpio52", "gpio122", "gpio49";
+			pins = "gpio0", "gpio3", "gpio22", "gpio24",
+			       "gpio26", "gpio40", "gpio41", "gpio49",
+			       "gpio52", "gpio91", "gpio92", "gpio95",
+			       "gpio96", "gpio124", "gpio128", "gpio116",
+			       "gpio122";
 			function = "gpio";
 			drive-strength = <16>;
 			bias-pull-up;
