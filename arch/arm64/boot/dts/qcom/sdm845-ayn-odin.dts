@@ -835,7 +835,6 @@
 &pmi8998_wled {
 	status = "okay";
 	qcom,enabled-strings = <0 1>;
-	qcom,num-strings = <2>;
 };
 
 &q6asmdai {
@@ -993,6 +992,26 @@
 &slpi_pas {
 	firmware-name = "qcom/sdm845/AYN/Odin/slpi.mbn";
 	status = "okay";
+};
+
+&swm {
+	left_spkr: wsa8810-left{
+		compatible = "sdw10217201000";
+		reg = <0 1>;
+		powerdown-gpios = <&wcdgpio 2 GPIO_ACTIVE_HIGH>;
+		#thermal-sensor-cells = <0>;
+		sound-name-prefix = "SpkrLeft";
+		#sound-dai-cells = <0>;
+	};
+
+	right_spkr: wsa8810-right{
+		compatible = "sdw10217201000";
+		powerdown-gpios = <&wcdgpio 2 GPIO_ACTIVE_HIGH>;
+		reg = <0 2>;
+		#thermal-sensor-cells = <0>;
+		sound-name-prefix = "SpkrRight";
+		#sound-dai-cells = <0>;
+	};
 };
 
 &tlmm {
@@ -1166,26 +1185,6 @@
 	qcom,mbhc-buttons-vthreshold-microvolt = <75000 150000 237000 500000 500000 500000 500000 500000>;
 	qcom,mbhc-headset-vthreshold-microvolt = <1700000>;
 	qcom,mbhc-headphone-vthreshold-microvolt = <50000>;
-
-	swm: swm@c85 {
-		left_spkr: wsa8810-left{
-			compatible = "sdw10217201000";
-			reg = <0 1>;
-			powerdown-gpios = <&wcdgpio 2 GPIO_ACTIVE_HIGH>;
-			#thermal-sensor-cells = <0>;
-			sound-name-prefix = "SpkrLeft";
-			#sound-dai-cells = <0>;
-		};
-
-		right_spkr: wsa8810-right{
-			compatible = "sdw10217201000";
-			powerdown-gpios = <&wcdgpio 2 GPIO_ACTIVE_HIGH>;
-			reg = <0 2>;
-			#thermal-sensor-cells = <0>;
-			sound-name-prefix = "SpkrRight";
-			#sound-dai-cells = <0>;
-		};
-	};
 };
 
 &wifi {
