@@ -32,16 +32,30 @@
 		stdout-path = "serial0:115200n8";
 	};
 
-	gpio-keys {
-		compatible = "gpio-keys";
+	battery: battery {
+		compatible = "simple-battery";
+
+		charge-full-design-microamp-hours = <3850000>;
+		voltage-min-design-microvolt = <3600000>;
+		voltage-max-design-microvolt = <4400000>;
+	};
+
+	connector {
+		compatible = "hdmi-connector";
+
+		label = "HDMI";
+		type = "d";
+
+		hdmi-pwr-supply = <&hdmi_en_reg>;
+		hpd-gpios = <&tlmm 121 GPIO_ACTIVE_HIGH>;
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&volume_up_gpio>;
+		pinctrl-0 = <&hdmi_hpd>;
 
-		key-volume-up {
-			label = "Volume Up";
-			linux,code = <KEY_VOLUMEUP>;
-			gpios = <&pm8998_gpios 6 GPIO_ACTIVE_LOW>;
+		port {
+			hdmi_con: endpoint {
+				remote-endpoint = <&lt8912b_out>;
+			};
 		};
 	};
 
@@ -51,37 +65,6 @@
 
 		gpio = <&tlmm 44 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-	};
-
-	leds {
-		compatible = "gpio-leds";
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&gpio_leds_default>;
-
-		led-0 {
-			color = <LED_COLOR_ID_BLUE>;
-			gpios = <&tlmm 7 GPIO_ACTIVE_HIGH>;
-			label = "right_joystick";
-		};
-
-		led-1 {
-			color = <LED_COLOR_ID_BLUE>;
-			gpios = <&tlmm 25 GPIO_ACTIVE_HIGH>;
-			label = "left_joystick";
-		};
-
-		led-2 {
-			color = <LED_COLOR_ID_BLUE>;
-			gpios = <&tlmm 87 GPIO_ACTIVE_HIGH>;
-			label = "right_side";
-		};
-
-		led-3 {
-			color = <LED_COLOR_ID_BLUE>;
-			gpios = <&tlmm 129 GPIO_ACTIVE_HIGH>;
-			label = "left_side";
-		};
 	};
 
 	gamepad {
@@ -158,7 +141,76 @@
 		};
 	};
 
-	fan: pwm-fan {
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&volume_up_gpio>;
+
+		key-volume-up {
+			label = "Volume Up";
+			linux,code = <KEY_VOLUMEUP>;
+			gpios = <&pm8998_gpios 6 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	hdmi_en_reg: hdmi-en-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "hdmi_en";
+
+		gpio = <&tlmm 13 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_leds_default>;
+
+		led-0 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 7 GPIO_ACTIVE_HIGH>;
+			label = "right_joystick";
+		};
+
+		led-1 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 25 GPIO_ACTIVE_HIGH>;
+			label = "left_joystick";
+		};
+
+		led-2 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 87 GPIO_ACTIVE_HIGH>;
+			label = "right_side";
+		};
+
+		led-3 {
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 129 GPIO_ACTIVE_HIGH>;
+			label = "left_side";
+		};
+	};
+
+	/*
+	 * Apparently RPMh does not provide support for PM8998 S4 because it
+	 * is always-on; model it as a fixed regulator.
+	 */
+	vreg_s4a_1p8: pm8998-smps4 {
+		compatible = "regulator-fixed";
+		regulator-name = "vreg_s4a_1p8";
+
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+
+		regulator-always-on;
+		regulator-boot-on;
+
+		vin-supply = <&vph_pwr>;
+	};
+
+	pwm_fan: pwm-fan {
 		compatible = "pwm-fan";
 		cooling-levels = <0 40 127>;
 		#cooling-cells = <2>;
@@ -187,11 +239,11 @@
 			cooling-maps {
 				map1 {
 					trip = <&cluster0_fan0>;
-					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+					cooling-device = <&pwm_fan THERMAL_NO_LIMIT 1>;
 				};
 				map2 {
 					trip = <&cluster0_fan1>;
-					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -211,11 +263,11 @@
 			cooling-maps {
 				map1 {
 					trip = <&cluster1_fan0>;
-					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+					cooling-device = <&pwm_fan THERMAL_NO_LIMIT 1>;
 				};
 				map2 {
 					trip = <&cluster1_fan1>;
-					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -235,11 +287,11 @@
 			cooling-maps {
 				map1 {
 					trip = <&gpu_top_fan0>;
-					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+					cooling-device = <&pwm_fan THERMAL_NO_LIMIT 1>;
 				};
 				map2 {
 					trip = <&gpu_top_fan1>;
-					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -259,49 +311,14 @@
 			cooling-maps {
 				map1 {
 					trip = <&gpu_bottom_fan0>;
-					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+					cooling-device = <&pwm_fan THERMAL_NO_LIMIT 1>;
 				};
 				map2 {
 					trip = <&gpu_bottom_fan1>;
-					cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
-	};
-
-	battery: battery {
-		compatible = "simple-battery";
-
-		charge-full-design-microamp-hours = <3850000>;
-		voltage-min-design-microvolt = <3600000>;
-		voltage-max-design-microvolt = <4400000>;
-	};
-
-	connector {
-		compatible = "hdmi-connector";
-
-		label = "hdmi";
-		type = "d";
-
-		hdmi-pwr-supply = <&hdmi_en_reg>;
-		hpd-gpios = <&tlmm 121 GPIO_ACTIVE_HIGH>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&hdmi_hpd>;
-
-		port {
-			hdmi_con: endpoint {
-				remote-endpoint = <&lt8912b_out>;
-			};
-		};
-	};
-
-	hdmi_en_reg: hdmi-en-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "hdmi_en";
-
-		gpio = <&tlmm 13 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
 	};
 
 	vph_pwr: vph-pwr-regulator {
@@ -309,19 +326,6 @@
 		regulator-name = "vph_pwr";
 		regulator-min-microvolt = <3700000>;
 		regulator-max-microvolt = <3700000>;
-	};
-
-	vreg_s4a_1p8: pm8998-smps4 {
-		compatible = "regulator-fixed";
-		regulator-name = "vreg_s4a_1p8";
-
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-
-		regulator-always-on;
-		regulator-boot-on;
-
-		vin-supply = <&vph_pwr>;
 	};
 };
 
@@ -506,66 +510,6 @@
 	firmware-name = "qcom/sdm845/cdsp.mbn";
 };
 
-&mdss {
-	status = "okay";
-};
-
-&mdss_dsi0 {
-	status = "okay";
-	vdda-supply = <&vreg_l26a_1p2>;
-
-	display_panel: panel@0 {
-		compatible = "innolux,td4328";
-		status = "okay";
-		reg = <0>;
-		vddio-supply = <&vreg_l14a_1p8>;
-		vddpos-supply = <&lab>;
-		vddneg-supply = <&ibb>;
-
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		backlight = <&pmi8998_wled>;
-		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
-		enable-gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
-		rotation = <90>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&panel_reset_active &panel_enable_active>;
-
-		port {
-			panel_in: endpoint {
-				remote-endpoint = <&mdss_dsi0_out>;
-			};
-		};
-	};
-};
-
-&mdss_dsi0_out {
-	remote-endpoint = <&panel_in>;
-	data-lanes = <0 1 2 3>;
-};
-
-&mdss_dsi0_phy {
-	status = "okay";
-	vdds-supply = <&vdda_mipi_dsi0_pll>;
-};
-
-&mdss_dsi1 {
-	vdda-supply = <&vreg_l26a_1p2>;
-	status = "okay";
-};
-
-&mdss_dsi1_out {
-	remote-endpoint = <&lt8912b_in>;
-	data-lanes = <0 1 2 3>;
-};
-
-&mdss_dsi1_phy {
-	vdds-supply = <&vreg_l1a_0p875>;
-	status = "okay";
-};
-
 &dispcc {
 	status = "okay";
 };
@@ -685,6 +629,66 @@
 	regulator-over-current-protection;
 	regulator-pull-down;
 	regulator-soft-start;
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	status = "okay";
+	vdda-supply = <&vreg_l26a_1p2>;
+
+	display_panel: panel@0 {
+		compatible = "innolux,td4328";
+		status = "okay";
+		reg = <0>;
+		vddio-supply = <&vreg_l14a_1p8>;
+		vddpos-supply = <&lab>;
+		vddneg-supply = <&ibb>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		backlight = <&pmi8998_wled>;
+		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
+		rotation = <90>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&panel_reset_active &panel_enable_active>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	status = "okay";
+	vdds-supply = <&vdda_mipi_dsi0_pll>;
+};
+
+&mdss_dsi1 {
+	vdda-supply = <&vreg_l26a_1p2>;
+	status = "okay";
+};
+
+&mdss_dsi1_out {
+	remote-endpoint = <&lt8912b_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi1_phy {
+	vdds-supply = <&vreg_l1a_0p875>;
+	status = "okay";
 };
 
 &mss_pil {
@@ -831,6 +835,16 @@
 
 &qupv3_id_1 {
 	status = "okay";
+};
+
+&qup_i2c4_default {
+	drive-strength = <2>;
+	bias-disable;
+};
+
+&qup_i2c5_default {
+	drive-strength = <2>;
+	bias-disable;
 };
 
 &qup_uart6_default {
@@ -1171,14 +1185,4 @@
 	vdd-3.3-ch1-supply = <&vreg_l23a_3p3>;
 
 	qcom,snoc-host-cap-8bit-quirk;
-};
-
-&qup_i2c4_default {
-	drive-strength = <2>;
-	bias-disable;
-};
-
-&qup_i2c5_default {
-	drive-strength = <2>;
-	bias-disable;
 };
