@@ -75,6 +75,7 @@
 		dpad-right-gpio = <&tlmm 122 GPIO_ACTIVE_LOW>;
 		dpad-up-gpio = <&tlmm 124 GPIO_ACTIVE_LOW>;
 		east-btn-gpio = <&tlmm 96 GPIO_ACTIVE_LOW>;
+		enable-gpio = <&tlmm 88 GPIO_ACTIVE_HIGH>;
 		l1-btn-gpio = <&tlmm 26 GPIO_ACTIVE_LOW>;
 		home-btn-gpio = <&tlmm 49 GPIO_ACTIVE_LOW>;
 		north-btn-gpio = <&tlmm 92 GPIO_ACTIVE_LOW>;
@@ -102,42 +103,42 @@
 		x-axis {
 			abs-range = <1110000>;
 			abs-flat = <2000>;
-			abs-fuzz = <2500>;
+			abs-fuzz = <3500>;
 		};
 
 		y-axis {
 			abs-range = <1340000>;
 			inverted;
 			abs-flat = <2000>;
-			abs-fuzz = <2500>;
+			abs-fuzz = <3500>;
 		};
 
 		rx-axis {
 			abs-range = <1220000>;
 			inverted;
 			abs-flat = <2000>;
-			abs-fuzz = <2500>;
+			abs-fuzz = <3500>;
 		};
 
 		ry-axis {
 			abs-range = <1180000>;
 			inverted;
 			abs-flat = <3000>;
-			abs-fuzz = <4000>;
+			abs-fuzz = <4500>;
 		};
 
 		l2-trigger {
 			abs-range = <1400000>;
 			inverted;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-flat = <2000>;
+			abs-fuzz = <4000>;
 		};
 
 		r2-trigger {
 			abs-range = <1400000>;
 			inverted;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-flat = <2000>;
+			abs-fuzz = <4000>;
 		};
 	};
 
@@ -1049,7 +1050,6 @@
 		function = "gpio";
 		drive-strength = <8>;
 		bias-disable;
-		output-high;
 	};
 
 	btn_pins: btn-pins {
