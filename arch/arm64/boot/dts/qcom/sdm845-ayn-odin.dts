@@ -20,9 +20,7 @@
 
 / {
 	model = "AYN Odin";
-	compatible = "ayn,odin", "qcom,sdm845";
-	qcom,msm-id = <321 0x20001>;
-	qcom,board-id = <8 0>;
+	compatible = "ayntec,odin", "qcom,sdm845";
 	chassis-type = "tablet";
 
 	aliases {
@@ -32,13 +30,6 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-	};
-
-	/* Fixed crystal oscillator dedicated to MCP2517FD */
-	clk40M: can-clock {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <40000000>;
 	};
 
 	gpio-keys {
@@ -679,23 +670,6 @@
 	};
 };
 
-&spi0 {
-	/*
-	 * TODO
-	 * [   16.605399] sdm845-pinctrl 3400000.pinctrl: pin GPIO_0 already requested by odin-gamepad; cannot claim for 880000.spi
-	 */
-	status = "disabled";
-	cs-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
-
-	can@0 {
-		compatible = "microchip,mcp2517fd";
-		reg = <0>;
-		clocks = <&clk40M>;
-		interrupts-extended = <&tlmm 34 IRQ_TYPE_LEVEL_LOW>;
-		spi-max-frequency = <10000000>;
-	};
-};
-
 &ibb {
 	regulator-min-microvolt = <4600000>;
 	regulator-max-microvolt = <6000000>;
@@ -910,7 +884,7 @@
 };
 
 &sound {
-	compatible = "ayn,odin-sndcard", "qcom,sdm845-sndcard";
+	compatible = "ayntec,odin-sndcard", "qcom,sdm845-sndcard";
 	model = "AYN Odin";
 
 	audio-routing =
@@ -1197,12 +1171,6 @@
 	vdd-3.3-ch1-supply = <&vreg_l23a_3p3>;
 
 	qcom,snoc-host-cap-8bit-quirk;
-};
-
-/* PINCTRL - additions to nodes defined in sdm845.dtsi */
-&qup_spi0_default {
-	drive-strength = <6>;
-	bias-disable;
 };
 
 &qup_i2c4_default {
