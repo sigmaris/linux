@@ -262,6 +262,7 @@ static int odin_gamepad_probe(struct platform_device *pdev)
 
 	input->id.bustype = BUS_HOST;
 	input->name = "AYN Odin Gamepad";
+	input->phys = "odin-gamepad/input0";
 	input_set_drvdata(input, gamepad);
 
 	error = odin_gamepad_setup_axes(gamepad);
