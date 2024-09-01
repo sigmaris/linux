@@ -126,30 +126,30 @@
 		pinctrl-0 = <&btn_pins &btn_en_active>;
 
 		x-axis {
-			abs-range = <1300000>;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-range = <1110000>;
+			abs-flat = <2000>;
+			abs-fuzz = <2500>;
 		};
 
 		y-axis {
-			abs-range = <1300000>;
+			abs-range = <1340000>;
 			inverted;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-flat = <2000>;
+			abs-fuzz = <2500>;
 		};
 
 		rx-axis {
-			abs-range = <1300000>;
+			abs-range = <1220000>;
 			inverted;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-flat = <2000>;
+			abs-fuzz = <2500>;
 		};
 
 		ry-axis {
-			abs-range = <1300000>;
+			abs-range = <1180000>;
 			inverted;
-			abs-flat = <10000>;
-			abs-fuzz = <10000>;
+			abs-flat = <3000>;
+			abs-fuzz = <4000>;
 		};
 
 		l2-trigger {
