@@ -213,7 +213,7 @@
 
 	pwm_fan: pwm-fan {
 		compatible = "pwm-fan";
-		cooling-levels = <0 40 127>;
+		cooling-levels = <0 30 60 120>;
 		#cooling-cells = <2>;
 		fan-supply = <&fan_en_reg>;
 		pinctrl-0 = <&pwm_fan_ctrl>;
@@ -236,6 +236,11 @@
 					hysteresis = <2000>;
 					type = "active";
 				};
+				cluster0_fan2: cluster0-fan2 {
+					temperature = <70000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
 			};
 			cooling-maps {
 				map1 {
@@ -244,7 +249,11 @@
 				};
 				map2 {
 					trip = <&cluster0_fan1>;
-					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 3>;
+				};
+				map3 {
+					trip = <&cluster0_fan2>;
+					cooling-device = <&pwm_fan 3 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -260,6 +269,11 @@
 					hysteresis = <2000>;
 					type = "active";
 				};
+				cluster1_fan2: cluster1-fan2 {
+					temperature = <70000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
 			};
 			cooling-maps {
 				map1 {
@@ -268,7 +282,11 @@
 				};
 				map2 {
 					trip = <&cluster1_fan1>;
-					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 3>;
+				};
+				map3 {
+					trip = <&cluster1_fan2>;
+					cooling-device = <&pwm_fan 3 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -284,6 +302,11 @@
 					hysteresis = <2000>;
 					type = "active";
 				};
+				gpu_top_fan2: gpu-top-fan2 {
+					temperature = <70000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
 			};
 			cooling-maps {
 				map1 {
@@ -292,7 +315,11 @@
 				};
 				map2 {
 					trip = <&gpu_top_fan1>;
-					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 3>;
+				};
+				map3 {
+					trip = <&gpu_top_fan2>;
+					cooling-device = <&pwm_fan 3 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -308,6 +335,11 @@
 					hysteresis = <2000>;
 					type = "active";
 				};
+				gpu_bottom_fan2: gpu-bottom-fan2 {
+					temperature = <70000>;
+					hysteresis = <2000>;
+					type = "active";
+				};
 			};
 			cooling-maps {
 				map1 {
@@ -316,7 +348,11 @@
 				};
 				map2 {
 					trip = <&gpu_bottom_fan1>;
-					cooling-device = <&pwm_fan 2 THERMAL_NO_LIMIT>;
+					cooling-device = <&pwm_fan 2 3>;
+				};
+				map3 {
+					trip = <&gpu_bottom_fan2>;
+					cooling-device = <&pwm_fan 3 THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -587,6 +623,7 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		// TODO: unused
 		reset-gpios = <&tlmm 104 GPIO_ACTIVE_LOW>;
 		interrupts-extended = <&tlmm 125 IRQ_TYPE_EDGE_FALLING>;
 
