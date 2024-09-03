@@ -198,6 +198,51 @@ static void rmi_i2c_unregister_transport(void *data)
 	rmi_unregister_transport_device(&rmi_i2c->xport);
 }
 
+static int rmi_i2c_initial_power_up(struct i2c_client *client)
+{
+	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
+	int error;
+
+	error = regulator_bulk_enable(ARRAY_SIZE(rmi_i2c->supplies),
+				      rmi_i2c->supplies);
+	if (error < 0)
+		return error;
+
+	error = devm_add_action_or_reset(&client->dev,
+					 rmi_i2c_regulator_bulk_disable,
+					 rmi_i2c);
+	if (error)
+		return error;
+
+	msleep(rmi_i2c->startup_delay);
+
+	/*
+	 * Setting the page to zero will (a) make sure the PSR is in a
+	 * known state, and (b) make sure we can talk to the device.
+	 */
+	error = rmi_set_page(rmi_i2c, 0);
+	if (error) {
+		dev_err(&client->dev, "Failed to set page select to 0\n");
+		return error;
+	}
+
+	dev_info(&client->dev, "registering I2C-connected sensor\n");
+
+	error = rmi_register_transport_device(&rmi_i2c->xport);
+	if (error) {
+		dev_err(&client->dev, "failed to register sensor: %d\n", error);
+		return error;
+	}
+
+	error = devm_add_action_or_reset(&client->dev,
+					 rmi_i2c_unregister_transport,
+					 rmi_i2c);
+	if (error)
+		return error;
+
+	return 0;
+}
+
 static int rmi_i2c_probe(struct i2c_client *client)
 {
 	struct rmi_device_platform_data *pdata;
@@ -235,21 +280,8 @@ static int rmi_i2c_probe(struct i2c_client *client)
 	if (error < 0)
 		return error;
 
-	error = regulator_bulk_enable(ARRAY_SIZE(rmi_i2c->supplies),
-				       rmi_i2c->supplies);
-	if (error < 0)
-		return error;
-
-	error = devm_add_action_or_reset(&client->dev,
-					  rmi_i2c_regulator_bulk_disable,
-					  rmi_i2c);
-	if (error)
-		return error;
-
 	of_property_read_u32(client->dev.of_node, "syna,startup-delay-ms",
 			     &rmi_i2c->startup_delay);
-
-	msleep(rmi_i2c->startup_delay);
 
 	rmi_i2c->client = client;
 	mutex_init(&rmi_i2c->page_mutex);
@@ -260,31 +292,7 @@ static int rmi_i2c_probe(struct i2c_client *client)
 
 	i2c_set_clientdata(client, rmi_i2c);
 
-	/*
-	 * Setting the page to zero will (a) make sure the PSR is in a
-	 * known state, and (b) make sure we can talk to the device.
-	 */
-	error = rmi_set_page(rmi_i2c, 0);
-	if (error) {
-		dev_err(&client->dev, "Failed to set page select to 0\n");
-		return error;
-	}
-
-	dev_info(&client->dev, "registering I2C-connected sensor\n");
-
-	error = rmi_register_transport_device(&rmi_i2c->xport);
-	if (error) {
-		dev_err(&client->dev, "failed to register sensor: %d\n", error);
-		return error;
-	}
-
-	error = devm_add_action_or_reset(&client->dev,
-					  rmi_i2c_unregister_transport,
-					  rmi_i2c);
-	if (error)
-		return error;
-
-	return 0;
+	return rmi_i2c_initial_power_up(client);
 }
 
 static int rmi_i2c_suspend(struct device *dev)
