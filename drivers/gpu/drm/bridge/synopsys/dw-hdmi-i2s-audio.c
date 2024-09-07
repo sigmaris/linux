@@ -42,6 +42,7 @@ static int dw_hdmi_i2s_prepare(struct device *dev, void *data,
 	struct dw_hdmi *hdmi = audio->hdmi;
 	u8 conf0 = 0;
 	u8 conf1 = 0;
+	u8 conf2 = 0;
 	u8 inputclkfs = 0;
 
 	/* it cares I2S only */
@@ -49,6 +50,8 @@ static int dw_hdmi_i2s_prepare(struct device *dev, void *data,
 		dev_err(dev, "unsupported clock settings\n");
 		return -EINVAL;
 	}
+
+	dev_info(dev, "before reset AUD_CONF2=%x\n", hdmi_read(audio, HDMI_AUD_CONF2));
 
 	/* Reset the FIFOs before applying new params */
 	hdmi_write(audio, HDMI_AUD_CONF0_SW_RESET, HDMI_AUD_CONF0);
@@ -101,6 +104,30 @@ static int dw_hdmi_i2s_prepare(struct device *dev, void *data,
 		return -EINVAL;
 	}
 
+	/*
+	 * dw-hdmi introduced insert_pcuv bit in
+	 * version 2.10a.
+	 *
+	 * This single bit (bit 2 of HDMI_AUD_CONF2)
+	 * when set to 1 will enable the insertion of the PCUV
+	 * (Parity, Channel Status, User bit and Validity)
+	 * bits on the incoming audio stream.
+	 * 
+	 * Support is limited to Linear PCM audio. If
+	 * neglected, the lack of valid PCUV bits
+	 * on L-PCM streams will cause anything from
+	 * mild cracking to full blown extreme
+	 * clipping depending on the HDMI audio
+	 * implementation of the sink.
+	 *
+	 */
+
+	if (hdmi_read(audio, HDMI_DESIGN_ID) >= 0x21 &&
+			!(hparms->iec.status[0] & IEC958_AES0_NONAUDIO)) {
+		dev_info(dev, "after reset AUD_CONF2=%x\n", hdmi_read(audio, HDMI_AUD_CONF2));
+		conf2 = HDMI_AUD_CONF2_INSERT_PCUV;
+	}
+
 	dw_hdmi_set_sample_rate(hdmi, hparms->sample_rate);
 	dw_hdmi_set_channel_status(hdmi, hparms->iec.status);
 	dw_hdmi_set_channel_count(hdmi, hparms->channels);
@@ -109,6 +136,7 @@ static int dw_hdmi_i2s_prepare(struct device *dev, void *data,
 	hdmi_write(audio, inputclkfs, HDMI_AUD_INPUTCLKFS);
 	hdmi_write(audio, conf0, HDMI_AUD_CONF0);
 	hdmi_write(audio, conf1, HDMI_AUD_CONF1);
+	hdmi_write(audio, conf2, HDMI_AUD_CONF2);
 
 	return 0;
 }
