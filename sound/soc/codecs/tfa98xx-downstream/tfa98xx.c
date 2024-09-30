@@ -3091,7 +3091,7 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c)
 
 	if (gpio_is_valid(tfa98xx->irq_gpio)) {
 		ret = devm_gpio_request_one(&i2c->dev, tfa98xx->irq_gpio,
-			GPIOF_DIR_IN, "TFA98XX_INT");
+			GPIOF_IN, "TFA98XX_INT");
 		if (ret)
 			return ret;
 	}
