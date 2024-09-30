@@ -1355,7 +1355,7 @@ static int fts_parse_dt(struct i2c_client *client)
 	pdata->gpio = of_get_named_gpio(np, "stm,irq_gpio", 0);
 	if (gpio_is_valid(pdata->gpio)) {
 		retval = gpio_request_one(pdata->gpio,
-					GPIOF_DIR_IN, "stm,tsp_int");
+					GPIOF_IN, "stm,tsp_int");
 		if (retval) {
 			tsp_debug_err(dev,
 						"Unable to request tsp_int [%d]\n",
