@@ -198,6 +198,34 @@ static void rmi_i2c_unregister_transport(void *data)
 	rmi_unregister_transport_device(&rmi_i2c->xport);
 }
 
+static int rmi_i2c_suspend(struct rmi_i2c_xport *rmi_i2c)
+{
+	int ret = rmi_driver_suspend(rmi_i2c->xport.rmi_dev, true);
+	if (ret)
+		dev_warn(&rmi_i2c->client->dev, "Failed to suspend device: %d\n", ret);
+
+	regulator_bulk_disable(ARRAY_SIZE(rmi_i2c->supplies),
+			       rmi_i2c->supplies);
+
+	return ret;
+}
+
+static int rmi_i2c_resume(struct rmi_i2c_xport *rmi_i2c)
+{
+	int ret = regulator_bulk_enable(ARRAY_SIZE(rmi_i2c->supplies),
+					rmi_i2c->supplies);
+	if (ret)
+		return ret;
+
+	msleep(rmi_i2c->startup_delay);
+
+	ret = rmi_driver_resume(rmi_i2c->xport.rmi_dev, true);
+	if (ret)
+		dev_warn(&rmi_i2c->client->dev, "Failed to resume device: %d\n", ret);
+
+	return ret;
+}
+
 static int rmi_i2c_initial_power_up(struct i2c_client *client)
 {
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
@@ -295,54 +323,28 @@ static int rmi_i2c_probe(struct i2c_client *client)
 	return rmi_i2c_initial_power_up(client);
 }
 
-static int rmi_i2c_suspend(struct device *dev)
+static int rmi_i2c_pm_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
-	int ret;
-
-	ret = rmi_driver_suspend(rmi_i2c->xport.rmi_dev, true);
-	if (ret)
-		dev_warn(dev, "Failed to resume device: %d\n", ret);
-
-	regulator_bulk_disable(ARRAY_SIZE(rmi_i2c->supplies),
-			       rmi_i2c->supplies);
-
-	return ret;
+	
+	return rmi_i2c_suspend(rmi_i2c);
 }
 
-static int rmi_i2c_resume(struct device *dev)
+static int rmi_i2c_pm_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
-	int ret;
 
-	ret = regulator_bulk_enable(ARRAY_SIZE(rmi_i2c->supplies),
-				    rmi_i2c->supplies);
-	if (ret)
-		return ret;
-
-	msleep(rmi_i2c->startup_delay);
-
-	ret = rmi_driver_resume(rmi_i2c->xport.rmi_dev, true);
-	if (ret)
-		dev_warn(dev, "Failed to resume device: %d\n", ret);
-
-	return ret;
+	return rmi_i2c_resume(rmi_i2c);
 }
 
 static int rmi_i2c_runtime_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
-	int ret;
-
-	ret = rmi_driver_suspend(rmi_i2c->xport.rmi_dev, false);
-	if (ret)
-		dev_warn(dev, "Failed to resume device: %d\n", ret);
-
-	regulator_bulk_disable(ARRAY_SIZE(rmi_i2c->supplies),
-			       rmi_i2c->supplies);
+	
+	rmi_i2c_suspend(rmi_i2c);
 
 	return 0;
 }
@@ -351,24 +353,14 @@ static int rmi_i2c_runtime_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
-	int ret;
-
-	ret = regulator_bulk_enable(ARRAY_SIZE(rmi_i2c->supplies),
-				    rmi_i2c->supplies);
-	if (ret)
-		return ret;
-
-	msleep(rmi_i2c->startup_delay);
-
-	ret = rmi_driver_resume(rmi_i2c->xport.rmi_dev, false);
-	if (ret)
-		dev_warn(dev, "Failed to resume device: %d\n", ret);
+	
+	rmi_i2c_resume(rmi_i2c);
 
 	return 0;
 }
 
 static const struct dev_pm_ops rmi_i2c_pm = {
-	SYSTEM_SLEEP_PM_OPS(rmi_i2c_suspend, rmi_i2c_resume)
+	SYSTEM_SLEEP_PM_OPS(rmi_i2c_pm_suspend, rmi_i2c_pm_resume)
 	RUNTIME_PM_OPS(rmi_i2c_runtime_suspend, rmi_i2c_runtime_resume, NULL)
 };
 
