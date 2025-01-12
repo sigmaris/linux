@@ -9,6 +9,9 @@
 #include <linux/of.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
+
+#include <drm/drm_panel.h>
+
 #include "rmi_driver.h"
 
 #define BUFFER_SIZE_INCREMENT 32
@@ -27,6 +30,9 @@
  *
  * @supplies: Array of voltage regulators
  * @startup_delay: Milliseconds to pause after powering up the regulators
+ *
+ * @panel_follower: The optional DRM panel follower structure
+ * @is_panel_follower: Indicates if this device follows power sequencing of an attached panel
  */
 struct rmi_i2c_xport {
 	struct rmi_transport_dev xport;
@@ -40,6 +46,9 @@ struct rmi_i2c_xport {
 
 	struct regulator_bulk_data supplies[2];
 	u32 startup_delay;
+
+	struct drm_panel_follower panel_follower;
+	bool is_panel_follower;
 };
 
 #define RMI_PAGE_SELECT_REGISTER 0xff
@@ -226,7 +235,7 @@ static int rmi_i2c_resume(struct rmi_i2c_xport *rmi_i2c)
 	return ret;
 }
 
-static int rmi_i2c_initial_power_up(struct i2c_client *client)
+static int __do_rmi_i2c_initial_power_up(struct i2c_client *client)
 {
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
 	int error;
@@ -269,6 +278,74 @@ static int rmi_i2c_initial_power_up(struct i2c_client *client)
 		return error;
 
 	return 0;
+}
+
+static int rmi_i2c_panel_prepared(struct drm_panel_follower *follower)
+{
+	struct rmi_i2c_xport *rmi_i2c = container_of(follower, struct rmi_i2c_xport, panel_follower);
+
+	dev_info(&rmi_i2c->client->dev, "Panel %s has prepared\n", follower->panel->dev->init_name);
+	/*
+	 * xport.rmi_dev is set after the first power up and registering of this device with the bus.
+	 * If it's null then this is the first power up of the panel and we need to power on and
+	 * register this device.
+	 */
+	if (!rmi_i2c->xport.rmi_dev)
+		return __do_rmi_i2c_initial_power_up(rmi_i2c->client);
+	else
+		return rmi_i2c_resume(rmi_i2c);
+}
+
+static int rmi_i2c_panel_unpreparing(struct drm_panel_follower *follower)
+{
+	struct rmi_i2c_xport *rmi_i2c = container_of(follower, struct rmi_i2c_xport, panel_follower);
+
+	dev_info(&rmi_i2c->client->dev, "Panel %s is unpreparing\n", follower->panel->dev->init_name);
+
+	return rmi_i2c_suspend(rmi_i2c);
+}
+
+static const struct drm_panel_follower_funcs rmi_i2c_panel_follower_funcs = {
+	.panel_prepared = rmi_i2c_panel_prepared,
+	.panel_unpreparing = rmi_i2c_panel_unpreparing,
+};
+
+static int rmi_i2c_register_panel_follower(struct rmi_i2c_xport *rmi_i2c)
+{
+	struct device *dev = &rmi_i2c->client->dev;
+	int ret;
+
+	dev_info(&rmi_i2c->client->dev, "Registering as a panel follower\n");
+
+	rmi_i2c->panel_follower.funcs = &rmi_i2c_panel_follower_funcs;
+
+	if (device_can_wakeup(dev)) {
+		dev_warn(dev, "Can't wakeup if following panel\n");
+		device_set_wakeup_capable(dev, false);
+	}
+
+	ret = drm_panel_add_follower(dev, &rmi_i2c->panel_follower);
+	if (ret)
+		return ret;
+
+	rmi_i2c->is_panel_follower = true;
+
+	return 0;
+}
+
+static int rmi_i2c_initial_power_up(struct rmi_i2c_xport *rmi_i2c)
+{
+	/*
+	 * If we're following a panel then we need to register with it
+	 * and wait for it to power up before we can power up.
+	 */
+	if (drm_is_panel_follower(&rmi_i2c->client->dev)) {
+		dev_info(&rmi_i2c->client->dev, "We are a panel follower - deferring powerup\n");
+		return rmi_i2c_register_panel_follower(rmi_i2c);
+	} else {
+		dev_info(&rmi_i2c->client->dev, "We are NOT a panel follower - immediate powerup\n");
+		return __do_rmi_i2c_initial_power_up(rmi_i2c->client);
+	}
 }
 
 static int rmi_i2c_probe(struct i2c_client *client)
@@ -320,7 +397,7 @@ static int rmi_i2c_probe(struct i2c_client *client)
 
 	i2c_set_clientdata(client, rmi_i2c);
 
-	return rmi_i2c_initial_power_up(client);
+	return rmi_i2c_initial_power_up(rmi_i2c);
 }
 
 static int rmi_i2c_pm_suspend(struct device *dev)
@@ -328,6 +405,10 @@ static int rmi_i2c_pm_suspend(struct device *dev)
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
 	
+	// If we're following a panel then we'll suspend when it unprepares.
+	if (rmi_i2c->is_panel_follower)
+		return 0;
+
 	return rmi_i2c_suspend(rmi_i2c);
 }
 
@@ -335,6 +416,10 @@ static int rmi_i2c_pm_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rmi_i2c_xport *rmi_i2c = i2c_get_clientdata(client);
+
+	// If we're following a panel then we'll resume after it's prepared.
+	if (rmi_i2c->is_panel_follower)
+		return 0;
 
 	return rmi_i2c_resume(rmi_i2c);
 }
