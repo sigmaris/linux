@@ -633,6 +633,8 @@
 		syna,reset-delay-ms = <200>;
 		syna,startup-delay-ms = <200>;
 
+		panel = <&display_panel>;
+
 		pinctrl-names = "default";
 		pinctrl-0 = <&ts_int_active &ts_reset_active>;
 
