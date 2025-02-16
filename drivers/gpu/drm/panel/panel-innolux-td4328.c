@@ -128,13 +128,6 @@ static const struct drm_display_mode innolux_td4328_mode = {
 static int innolux_td4328_get_modes(struct drm_panel *panel,
 				    struct drm_connector *connector)
 {
-	/*
-	 * TODO: Remove once all drm drivers call
-	 * drm_connector_set_orientation_from_panel()
-	 */
-	struct innolux_td4328 *ctx = to_innolux_td4328(panel);
-	drm_connector_set_panel_orientation(connector, ctx->orientation);
-
 	return drm_connector_helper_get_modes_fixed(connector, &innolux_td4328_mode);
 }
 
