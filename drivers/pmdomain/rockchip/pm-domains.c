@@ -604,9 +604,10 @@ static int rockchip_do_pmu_set_power_domain(struct rockchip_pm_domain *pd,
 	}
 
 	/* Inform firmware to keep this pd on or off */
-	arm_smccc_smc(ROCKCHIP_SIP_SUSPEND_MODE, ROCKCHIP_SLEEP_PD_CONFIG,
-			pmu->info->pwr_offset + pd_pwr_offset,
-			pd->info->pwr_mask, on, 0, 0, 0, &res);
+	if (arm_smccc_1_1_get_conduit() != SMCCC_CONDUIT_NONE)
+		arm_smccc_smc(ROCKCHIP_SIP_SUSPEND_MODE, ROCKCHIP_SLEEP_PD_CONFIG,
+				pmu->info->pwr_offset + pd_pwr_offset,
+				pd->info->pwr_mask, on, 0, 0, 0, &res);
 
 	return 0;
 }
