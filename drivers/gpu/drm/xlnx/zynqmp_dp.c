@@ -1677,7 +1677,8 @@ static int zynqmp_dp_bridge_atomic_check(struct drm_bridge *bridge,
 	return 0;
 }
 
-static enum drm_connector_status __zynqmp_dp_bridge_detect(struct zynqmp_dp *dp)
+static enum drm_connector_status
+zynqmp_dp_bridge_detect(struct drm_bridge *bridge, struct drm_connector *connector)
 {
 	struct zynqmp_dp_link_config *link_config = &dp->link_config;
 	u32 state, i;
