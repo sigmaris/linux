@@ -56,6 +56,7 @@ actions:
           - systemctl --failed
           - timedatectl set-ntp true
           - systemctl restart systemd-timesyncd
+          - sleep 15 # wait for delayed regulator poweroff
       prompts:
         - 'user@rk3588-ci:(.*)$'
         - 'root@rk3588-ci:(.*)#'
