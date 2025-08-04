@@ -296,7 +296,10 @@ actions:
               rk_gmac-dwmac .* set [rt]x_delay to|
               rk_gmac-dwmac .* supply phy not found, using dummy regulator|
               rockchip-usb2phy .* Requested PHY is disabled|
-              cacheinfo: Unable to detect cache hierarchy for CPU 0
+              cacheinfo: Unable to detect cache hierarchy for CPU 0|
+              ufshcd-rockchip 2a2d0000.ufshc: .*|
+              host_regs: 000000[0-9]0: .*|
+              DUMMY_TERMINATOR_ENTRY
       timeout:
         minutes: 10
 {{ /if }}
