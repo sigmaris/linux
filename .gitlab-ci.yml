@@ -91,6 +91,7 @@ check devicetrees:
                        -m EXFAT_FS -m ISO9660_FS
                        -e DRM_ACCEL -m DRM_ACCEL_ROCKET
                        -m VIDEO_IMX415
+                       -m PHY_ROCKCHIP_INNO_CSIDPHY
     - make -j$(nproc) $ADDITIONAL_BUILD_CMD bindeb-pkg
     - mkdir artifacts && dcmd mv ../*.changes artifacts/
   artifacts:
