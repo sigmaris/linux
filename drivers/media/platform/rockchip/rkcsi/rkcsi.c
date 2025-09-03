@@ -668,7 +668,7 @@ static int rkcsi_probe(struct platform_device *pdev)
 	if (IS_ERR(csi_dev->base_addr))
 		return PTR_ERR(csi_dev->base_addr);
 
-	irq = platform_get_irq_byname(pdev, "intr1");
+	irq = platform_get_irq_byname(pdev, "irq1");
 	if (irq > 0) {
 		ret = devm_request_irq(dev, irq, rkcsi_isr, 0,
 				       dev_driver_string(dev), dev);
@@ -679,7 +679,7 @@ static int rkcsi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "No found irq csi-intr1\n");
 	}
 
-	irq = platform_get_irq_byname(pdev, "intr2");
+	irq = platform_get_irq_byname(pdev, "irq2");
 	if (irq > 0) {
 		ret = devm_request_irq(dev, irq, rkcsi_isr, 0,
 				       dev_driver_string(dev), dev);
