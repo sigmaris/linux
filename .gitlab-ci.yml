@@ -94,6 +94,7 @@ check devicetrees:
                        -e UDMABUF -m DRM_VKMS -m VIDEO_VIVID -m VIDEO_DEV
                        -e V4L_TEST_DRIVERS -e MEDIA_TEST_SUPPORT
                        -m VIDEO_IMX415
+                       -m PHY_ROCKCHIP_INNO_CSIDPHY
     - make -j$(nproc) $ADDITIONAL_BUILD_CMD bindeb-pkg
     - mkdir artifacts && dcmd mv ../*.changes artifacts/
   artifacts:
