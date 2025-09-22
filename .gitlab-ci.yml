@@ -86,7 +86,7 @@ check devicetrees:
                        -e DYNAMIC_DEBUG
                        -m RTW89_PCI -m RTW89_8825B -m RTW89_8852BE
                        -m BINFMT_MISC
-                       -e WATCHDOG_SYSFS
+                       -e WATCHDOG_SYSFS -e PM_DEBUG
                        -m XFS_FS -m EROFS_FS -m F2FS_FS
                        -m EXFAT_FS -m ISO9660_FS
                        -e DRM_ACCEL -m DRM_ACCEL_ROCKET
