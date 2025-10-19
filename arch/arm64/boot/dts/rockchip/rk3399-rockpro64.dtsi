@@ -6,6 +6,7 @@
 
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/pwm/pwm.h>
+#include <dt-bindings/usb/pd.h>
 #include "rk3399.dtsi"
 
 / {
@@ -186,7 +187,6 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_typec_en>;
 		regulator-name = "vcc5v0_typec";
-		regulator-always-on;
 		vin-supply = <&vcc5v0_usb>;
 	};
 
@@ -230,6 +230,11 @@
 		regulator-min-microvolt = <800000>;
 		regulator-max-microvolt = <1700000>;
 	};
+};
+
+&cdn_dp {
+	phys = <&tcphy0_dp>;
+	status = "okay";
 };
 
 &cpu_l0 {
@@ -281,6 +286,12 @@
 			trip = <&cpu_hot>;
 			cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
 		};
+	};
+};
+
+&dp_out {
+	dp_controller_output: endpoint {
+		remote-endpoint = <&dp_phy_in>;
 	};
 };
 
@@ -572,6 +583,53 @@
 		pinctrl-0 = <&fusb0_int>;
 		vbus-supply = <&vcc5v0_typec>;
 		status = "okay";
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			power-role = "source";
+			source-pdos =
+				<PDO_FIXED(5000, 1000, PDO_FIXED_EXTPOWER | PDO_FIXED_USB_COMM)>;
+			typec-power-opmode = "default";
+
+			altmodes {
+				displayport {
+					svid = /bits/ 16 <0xff01>;
+					vdo = <0x00001c46>;
+				};
+			};
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					usbc_hs: endpoint {
+						remote-endpoint = <&dwc3_0_role_switch>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+
+					usbc_ss: endpoint {
+						remote-endpoint = <&tcphy0_typec_ss>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+
+					usbc_dp: endpoint {
+						remote-endpoint = <&tcphy0_typec_dp>;
+					};
+				};
+			};
+		};
+
 	};
 };
 
@@ -794,6 +852,34 @@
 	status = "okay";
 };
 
+&tcphy0_dp {
+	mode-switch;
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		tcphy0_typec_dp: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&usbc_dp>;
+		};
+
+		dp_phy_in: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&dp_controller_output>;
+		};
+	};
+};
+
+&tcphy0_usb3 {
+	orientation-switch;
+
+	port {
+		tcphy0_typec_ss: endpoint {
+			remote-endpoint = <&usbc_ss>;
+		};
+	};
+};
 &tcphy1 {
 	status = "okay";
 };
@@ -876,8 +962,14 @@
 };
 
 &usbdrd_dwc3_0 {
+	usb-role-switch;
 	status = "okay";
-	dr_mode = "host";
+
+	port {
+		dwc3_0_role_switch: endpoint {
+			remote-endpoint = <&usbc_hs>;
+		};
+	};
 };
 
 &usbdrd3_1 {
