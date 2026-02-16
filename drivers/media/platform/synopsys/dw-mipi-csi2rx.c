@@ -380,6 +380,9 @@ static int dw_mipi_csi2rx_start(struct dw_mipi_csi2rx_device *csi2)
 	if (dw_mipi_csi2rx_has_reg(csi2, DW_MIPI_CSI2RX_CONTROL))
 		dw_mipi_csi2rx_write(csi2, DW_MIPI_CSI2RX_CONTROL, control);
 
+	dw_mipi_csi2rx_write(csi2, DW_MIPI_CSI2RX_MSK1, 0x0);
+	dw_mipi_csi2rx_write(csi2, DW_MIPI_CSI2RX_MSK2, 0x0);
+
 	ret = phy_power_on(csi2->phy);
 	if (ret)
 		return ret;
@@ -847,11 +850,32 @@ static const struct of_device_id dw_mipi_csi2rx_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, dw_mipi_csi2rx_of_match);
 
+static irqreturn_t rkcsi_isr(int irq, void *ctx)
+{
+	struct device *dev = ctx;
+	struct dw_mipi_csi2rx_device *csi2 = dev_get_drvdata(dev);
+	irqreturn_t ret = IRQ_NONE;
+#if 1
+	u32 state, err1, err2;
+
+	state = dw_mipi_csi2rx_read(csi2, DW_MIPI_CSI2RX_PHY_STATE);
+	err1 = dw_mipi_csi2rx_read(csi2, DW_MIPI_CSI2RX_ERR1);
+	err2 = dw_mipi_csi2rx_read(csi2, DW_MIPI_CSI2RX_ERR2);
+
+	dev_info(dev, "%s got CSI2RX_PHY_STATE = 0x%x", __func__, state);
+	dev_info(dev, "%s got CSI2RX_ERR1 = 0x%x", __func__, err1);
+	dev_info(dev, "%s got CSI2RX_ERR2 = 0x%x", __func__, err2);
+#endif
+	ret = IRQ_HANDLED;
+
+	return ret;
+}
+
 static int dw_mipi_csi2rx_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct dw_mipi_csi2rx_device *csi2;
-	int ret;
+	int ret, irq;
 
 	csi2 = devm_kzalloc(dev, sizeof(*csi2), GFP_KERNEL);
 	if (!csi2)
@@ -867,6 +891,28 @@ static int dw_mipi_csi2rx_probe(struct platform_device *pdev)
 	if (!csi2->drvdata)
 		return dev_err_probe(dev, -EINVAL,
 				     "failed to get driver data\n");
+
+	irq = platform_get_irq_byname(pdev, "err1");
+	if (irq > 0) {
+		ret = devm_request_irq(dev, irq, rkcsi_isr, 0,
+				       dev_driver_string(dev), dev);
+		if (ret < 0)
+			dev_err(&pdev->dev,
+				"request csi-intr1 irq failed: %d\n", ret);
+	} else {
+		dev_err(&pdev->dev, "No found irq csi-intr1\n");
+	}
+
+	irq = platform_get_irq_byname(pdev, "err2");
+	if (irq > 0) {
+		ret = devm_request_irq(dev, irq, rkcsi_isr, 0,
+				       dev_driver_string(dev), dev);
+		if (ret < 0)
+			dev_err(&pdev->dev, "request csi-intr2 failed: %d\n",
+				ret);
+	} else {
+		dev_err(&pdev->dev, "No found irq csi-intr2\n");
+	}
 
 	ret = devm_clk_bulk_get_all(dev, &csi2->clks);
 	if (ret < 0)
