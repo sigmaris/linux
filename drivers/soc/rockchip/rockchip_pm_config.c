@@ -38,6 +38,8 @@ static struct rk_on_off_regulator_list {
 	struct regulator_dev *off_reg_list[MAX_ON_OFF_REG_NUM];
 } on_off_regs_list[RK_PM_STATE_MAX];
 
+static int suspend_state_override = 0;
+
 static const struct of_device_id pm_match_table[] = {
 	{ .compatible = "rockchip,pm-px30",},
 	{ .compatible = "rockchip,pm-rk1808",},
@@ -190,6 +192,9 @@ static int pm_config_probe(struct platform_device *pdev)
 	else
 		sip_smc_set_suspend_mode(WKUP_SOURCE_CONFIG, wakeup_config, 0);
 
+	of_property_read_u32(node, "rockchip,suspend-state-override",
+			     &suspend_state_override);
+
 	if (of_property_read_u32_array(node,
 				       "rockchip,pwm-regulator-config",
 				       &pwm_regulator_config, 1))
@@ -249,6 +254,9 @@ static int pm_config_prepare(struct device *dev)
 	enum rk_pm_state state = suspend_state - PM_SUSPEND_MEM;
 	struct regulator_dev **on_list;
 	struct regulator_dev **off_list;
+
+	if (suspend_state_override)
+		suspend_state = suspend_state_override;
 
 	sip_smc_set_suspend_mode(LINUX_PM_STATE,
 				 suspend_state,
