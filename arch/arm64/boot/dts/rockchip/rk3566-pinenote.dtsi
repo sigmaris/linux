@@ -137,6 +137,7 @@
 		compatible = "rockchip,pm-rk3568";
 		status = "okay";
 		rockchip,sleep-debug-en = <0>;
+		rockchip,suspend-state-override = <5>;
 		rockchip,sleep-mode-config = <
 			(0
 			| RKPM_SLP_CENTER_OFF
@@ -486,7 +487,7 @@
 				regulator-max-microvolt = <1800000>;
 
 				regulator-state-mem {
-					regulator-on-in-suspend;
+					regulator-off-in-suspend;
 				};
 			};
 
@@ -508,7 +509,7 @@
 				regulator-max-microvolt = <900000>;
 
 				regulator-state-mem {
-					regulator-on-in-suspend;
+					regulator-off-in-suspend;
 				};
 			};
 
@@ -541,7 +542,7 @@
 				regulator-max-microvolt = <3300000>;
 
 				regulator-state-mem {
-					regulator-on-in-suspend;
+					regulator-off-in-suspend;
 				};
 			};
 
@@ -981,7 +982,7 @@
 	bus-width = <4>;
 	cap-sd-highspeed;
 	cap-sdio-irq;
-	keep-power-in-suspend;
+	cap-power-off-card;
 	mmc-pwrseq = <&sdio_pwrseq>;
 	non-removable;
 	pinctrl-0 = <&sdmmc1_bus4>, <&sdmmc1_clk>, <&sdmmc1_cmd>;
