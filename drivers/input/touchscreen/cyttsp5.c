@@ -1008,11 +1008,22 @@ static int __maybe_unused cyttsp5_suspend(struct device *dev)
 static int __maybe_unused cyttsp5_resume(struct device *dev)
 {
 	struct cyttsp5 *ts = dev_get_drvdata(dev);
+	int error = 0;
 
-	if (!device_may_wakeup(dev))
-		cyttsp5_power_control(ts, true);
+	if (!device_may_wakeup(dev)) {
+		error = cyttsp5_power_control(ts, true);
 
-	return 0;
+		if (error) {
+			gpiod_set_value_cansleep(ts->reset_gpio, 1);
+			msleep(10);
+			gpiod_set_value_cansleep(ts->reset_gpio, 0);
+			msleep(20);
+			error = 0;
+			// error = cyttsp5_startup(ts);
+		}
+	}
+
+	return error;
 }
 
 static SIMPLE_DEV_PM_OPS(cyttsp5_pm, cyttsp5_suspend, cyttsp5_resume);
