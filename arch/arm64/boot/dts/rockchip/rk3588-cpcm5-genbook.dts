@@ -454,6 +454,8 @@
 };
 
 &dmc {
+	center-supply = <&vdd_ddr_s0>;
+	mem-supply = <&vdd_log_s0>;
 	auto-freq-en = <1>;
 	status = "okay";
 };
